@@ -10,6 +10,11 @@ import {
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
+const rawDbId = firebaseConfig.firestoreDatabaseId;
+const dbId = (!rawDbId || rawDbId === '(default)' || (rawDbId.startsWith('ai-studio-') && firebaseConfig.projectId !== 'ai-studio-ponyloveharvestn-796203f7-25b3-4cf7-96ac-19b7d53605c1'))
+  ? undefined
+  : rawDbId;
+
 let dbInstance: Firestore;
 try {
   dbInstance = initializeFirestore(
@@ -19,10 +24,10 @@ try {
         tabManager: persistentMultipleTabManager(),
       }),
     },
-    firebaseConfig.firestoreDatabaseId
+    dbId
   );
 } catch {
-  dbInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  dbInstance = dbId ? getFirestore(app, dbId) : getFirestore(app);
 }
 export const db = dbInstance;
 export const auth = getAuth(app);

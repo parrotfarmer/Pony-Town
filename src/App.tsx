@@ -31,9 +31,9 @@ import { ThemeSettingsModal } from './components/ThemeSettingsModal';
 import { AuthModal } from './components/AuthModal';
 import { AdminConfirmModal, AdminActionType } from './components/AdminConfirmModal';
 
+import { StatusStoreModal } from './components/StatusStoreModal';
 const BulkEditorModal = lazy(() => import('./components/BulkEditorModal').then(m => ({ default: m.BulkEditorModal })));
 const StatusManagerModal = lazy(() => import('./components/StatusManagerModal').then(m => ({ default: m.StatusManagerModal })));
-const StatusStoreModal = lazy(() => import('./components/StatusStoreModal').then(m => ({ default: m.StatusStoreModal })));
 const RankingsModal = lazy(() => import('./components/RankingsModal').then(m => ({ default: m.RankingsModal })));
 const AdminControlModal = lazy(() => import('./components/AdminControlModal').then(m => ({ default: m.AdminControlModal })));
 import { ReservoirAccounting } from './components/ReservoirAccounting';
