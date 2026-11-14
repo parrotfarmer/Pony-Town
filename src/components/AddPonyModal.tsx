@@ -97,6 +97,7 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
       customDaysOverride: null,
       status: statuses[0]?.id || 'active',
       ownerId: user.uid,
+      ownerName: user.displayName || user.email?.split('@')[0] || 'Community Member',
       customData: {},
       favoriteTreat,
       hobby,

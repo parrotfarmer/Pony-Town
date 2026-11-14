@@ -26,9 +26,8 @@ export const PonySelector: React.FC<PonySelectorProps> = ({ ponies, onSelect, cu
 
   const filteredPonies = useMemo(() => {
     if (!query.trim()) return [];
-    const p = currentUserId ? ponies.filter(p => p.ownerId === currentUserId) : ponies;
-    return p.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
-  }, [ponies, currentUserId, query]);
+    return ponies.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
+  }, [ponies, query]);
 
   return (
     <div ref={containerRef} className="relative w-full">

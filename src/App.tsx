@@ -620,9 +620,9 @@ export default function App() {
     networkStateTimerRef.current = setTimeout(writeNow, 600);
   }, [user, authIsAdmin]);
 
-  // Attach authenticated Firestore listeners for shared network collections
+  // Attach Firestore listeners for shared network collections (real-time cross-user network)
   useEffect(() => {
-    if (!user || !db) return;
+    if (!db) return;
 
     const unsubPonies = onSnapshot(
       collection(db, 'ponies'),
@@ -639,8 +639,6 @@ export default function App() {
               );
             });
             batch.commit().catch(() => {});
-          } else if (didMigrateLocalPoniesRef.current) {
-            setPonies([]);
           }
           return;
         }
@@ -758,7 +756,7 @@ export default function App() {
                 reservoirDeductions,
                 isLayoutLocked,
                 updatedAt: new Date().toISOString(),
-                updatedBy: user.uid,
+                updatedBy: user?.uid || 'admin',
               }),
               { merge: true }
             ).catch(() => {});
@@ -1103,6 +1101,7 @@ export default function App() {
       }
       const safeId = sanitizeFirestoreId(newPony.id, 'pony');
       const effectiveOwnerId = newPony.ownerId || user.uid;
+      const effectiveOwnerName = newPony.ownerName || user.displayName || user.email?.split('@')[0] || 'Community Member';
       const isFirst = latestPoniesRef.current.length === 0;
       const hasExistingOwnedPony = latestPoniesRef.current.some((p) => p.ownerId === effectiveOwnerId);
       const ponyWithRole: PonyNode = {
@@ -1111,6 +1110,7 @@ export default function App() {
         isOriginalAdmin: isFirst,
         isMainPony: newPony.isMainPony !== undefined ? newPony.isMainPony : !hasExistingOwnedPony,
         ownerId: effectiveOwnerId,
+        ownerName: effectiveOwnerName,
         startDate: newPony.startDate || targetDate || new Date().toISOString().split('T')[0],
         lastAccruedDate: todayStr,
       };
@@ -1155,11 +1155,11 @@ export default function App() {
       }
       if (sourceId === targetId) return;
 
-      const myPony = ponies.find(p => p.ownerId === user.uid);
-      const isMyPonyInvolved = myPony && (sourceId === myPony.id || targetId === myPony.id);
+      const userPonyIds = new Set(ponies.filter(p => p.ownerId === user.uid).map(p => p.id));
+      const isMyPonyInvolved = userPonyIds.has(sourceId) || userPonyIds.has(targetId);
 
       if (!isAdmin && !isMyPonyInvolved) {
-        alert("You can only make connections between your own pony and another pony!");
+        console.warn("Connections can only be established with at least one owned pony.");
         return;
       }
 

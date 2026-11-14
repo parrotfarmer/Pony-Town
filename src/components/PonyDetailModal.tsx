@@ -491,6 +491,13 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     (c) => c.source === pony.id || c.target === pony.id
   );
 
+  const isConnectedToViewer = useMemo(() => {
+    if (!activeViewerPony || !pony || activeViewerPony.id === pony.id) return false;
+    return ponyConnections.some(
+      (c) => (c.source === activeViewerPony.id && c.target === pony.id) || (c.target === activeViewerPony.id && c.source === pony.id)
+    );
+  }, [activeViewerPony, pony, ponyConnections]);
+
   const existingConnectedIds = useMemo(() => new Set(
     ponyConnections.map((c) => (c.source === pony.id ? c.target : c.source))
   ), [ponyConnections, pony.id]);
@@ -1317,6 +1324,22 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   onClick={handleConnect}
                   disabled={!targetPonyToConnect}
                   className="px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-md border transition-all cursor-pointer disabled:opacity-40 theme-border-hover"
+                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                >
+                  Connect
+                </button>
+              </div>
+            )}
+
+            {!isPonyOwner && !isAdmin && activeViewerPony && !isConnectedToViewer && (
+              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-800">
+                <span className="text-slate-400 text-xs">
+                  Connect your pony ({activeViewerPony.name})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onCreateConnection(activeViewerPony.id, pony.id, 'friendship')}
+                  className="px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-md border transition-all cursor-pointer theme-border-hover"
                   style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
                 >
                   Connect

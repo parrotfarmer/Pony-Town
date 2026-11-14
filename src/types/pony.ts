@@ -102,6 +102,7 @@ export interface PonyNode {
   isAdmin?: boolean;
   isOriginalAdmin?: boolean;
   ownerId?: string; // UID of the user who owns/connected this pony
+  ownerName?: string; // Display name of the owner
   isMainPony?: boolean; // Set to true if this is the user's designated main pony
   payoutPercentage?: number; // % of general reservoir income
   treatsReceived?: number;   // total love units received from reservoir treats

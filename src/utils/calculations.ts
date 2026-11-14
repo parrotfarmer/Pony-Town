@@ -930,6 +930,7 @@ export function filterPoniesBySearch(ponies: PonyNode[], query: string): PonyNod
       p.element.toLowerCase().includes(q) ||
       p.location.toLowerCase().includes(q) ||
       p.notes.toLowerCase().includes(q) ||
+      (p.ownerName && p.ownerName.toLowerCase().includes(q)) ||
       (p.secretSpecies && p.secretSpecies.toLowerCase().includes(q)) ||
       (p.secretElement && p.secretElement.toLowerCase().includes(q)) ||
       (p.secretNotes && p.secretNotes.toLowerCase().includes(q)) ||

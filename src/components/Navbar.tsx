@@ -88,6 +88,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         p.element.toLowerCase().includes(q) ||
         p.location.toLowerCase().includes(q) ||
         p.notes.toLowerCase().includes(q) ||
+        (p.ownerName && p.ownerName.toLowerCase().includes(q)) ||
         customMatches
       );
     });
