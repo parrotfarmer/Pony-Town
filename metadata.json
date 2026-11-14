@@ -1,0 +1,6 @@
+{
+  "name": "Pony Love Harvest & Network Matrix",
+  "description": "Interactive pony web network tracker with live love harvesting metrics, node data storage, searchable directory, editable yields and duration, and magical power conversion analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

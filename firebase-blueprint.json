@@ -1,0 +1,206 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile representation in Firestore",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Explicit admin registry entry",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "addedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email"]
+    },
+    "SpeciesOption": {
+      "title": "Species Option",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "ElementOption": {
+      "title": "Element Option",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "LocationOption": {
+      "title": "Location Option",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Pony": {
+      "title": "Pony",
+      "description": "Pony node and profile in the Love Network",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "lastProfileUpdateAt": { "type": "string", "maxLength": 64 },
+        "lastAccruedDate": { "type": "string", "maxLength": 32 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "Connection": {
+      "title": "Web Connection",
+      "description": "Directed or undirected link between two pony nodes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "source": { "type": "string", "maxLength": 128 },
+        "target": { "type": "string", "maxLength": 128 },
+        "connectionType": { "type": "string", "maxLength": 64 },
+        "strength": { "type": "number" },
+        "startDate": { "type": "string", "maxLength": 32 }
+      },
+      "required": ["id", "source", "target", "connectionType"]
+    },
+    "StatusTier": {
+      "title": "Status Tier",
+      "description": "Multiplier status and purchasable badge tier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "multiplier": { "type": "number" },
+        "color": { "type": "string", "maxLength": 64 },
+        "price": { "type": "number" }
+      },
+      "required": ["id", "name", "multiplier", "color"]
+    },
+    "StoreBorder": {
+      "title": "Store Border",
+      "description": "Purchasable profile border catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 128 },
+        "price": { "type": "number" },
+        "icon": { "type": "string", "maxLength": 1024 }
+      },
+      "required": ["id", "name", "price", "icon"]
+    },
+    "NetworkState": {
+      "title": "Network Global State",
+      "description": "Shared network headers, reservoir counters, ratio, and layout lock",
+      "type": "object",
+      "properties": {
+        "loveToPowerRatio": { "type": "number" },
+        "targetDate": { "type": "string", "maxLength": 32 },
+        "archivedLove": { "type": "number" },
+        "reservoirDeductions": { "type": "number" },
+        "isLayoutLocked": { "type": "boolean" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      }
+    },
+    "UserSettings": {
+      "title": "User Settings",
+      "description": "Per-user custom theme, saved themes, and exchange unlocks",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "onboardingCompleted": { "type": "boolean" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid"]
+    },
+    "AppSettings": {
+      "title": "Admin App Settings",
+      "description": "Global administrative feature locks and user limits",
+      "type": "object",
+      "properties": {
+        "allowAvatarImageUpload": { "type": "boolean" },
+        "allowMyPoniesSort": { "type": "boolean" },
+        "profileUpdateCooldownHours": { "type": "number" },
+        "allowUserAddPony": { "type": "boolean" },
+        "maxPoniesPerUser": { "type": "number" },
+        "allowExchangeStore": { "type": "boolean" },
+        "allowMainPonySelection": { "type": "boolean" },
+        "allowLivePulseUpdates": { "type": "boolean" },
+        "allowLiveFlowAnimations": { "type": "boolean" },
+        "allowAutoDailyAccrual": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User account profiles"
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Admin entries for privilege checks"
+    },
+    "/species/{id}": {
+      "schema": { "$ref": "#/entities/SpeciesOption" },
+      "description": "Species dropdown options"
+    },
+    "/elements/{id}": {
+      "schema": { "$ref": "#/entities/ElementOption" },
+      "description": "Element dropdown options"
+    },
+    "/locations/{id}": {
+      "schema": { "$ref": "#/entities/LocationOption" },
+      "description": "Location (Country) dropdown options"
+    },
+    "/ponies/{id}": {
+      "schema": { "$ref": "#/entities/Pony" },
+      "description": "Pony nodes in the love network"
+    },
+    "/connections/{id}": {
+      "schema": { "$ref": "#/entities/Connection" },
+      "description": "Network links between ponies"
+    },
+    "/statuses/{id}": {
+      "schema": { "$ref": "#/entities/StatusTier" },
+      "description": "Status tiers and exchange badges"
+    },
+    "/storeBorders/{id}": {
+      "schema": { "$ref": "#/entities/StoreBorder" },
+      "description": "Exchange profile border catalog items"
+    },
+    "/networkState/{stateId}": {
+      "schema": { "$ref": "#/entities/NetworkState" },
+      "description": "Shared network configuration and reservoir totals"
+    },
+    "/userSettings/{userId}": {
+      "schema": { "$ref": "#/entities/UserSettings" },
+      "description": "User theme preferences and unlocked perks/borders"
+    },
+    "/appSettings/{settingId}": {
+      "schema": { "$ref": "#/entities/AppSettings" },
+      "description": "Global administrative feature locks and limits"
+    }
+  }
+}

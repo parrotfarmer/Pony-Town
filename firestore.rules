@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (
+          request.auth.token.keys().hasAll(['email', 'email_verified']) &&
+          request.auth.token.email_verified == true &&
+          request.auth.token.email in ['artandtraveltoday@gmail.com', 'ball.bryan.j@gmail.com']
+        )
+      );
+    }
+
+    function isValidPonyCore(data) {
+      return data.id is string && data.id.size() > 0 && data.id.size() <= 128 &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 128 &&
+        data.ownerId is string && data.ownerId.size() > 0 && data.ownerId.size() <= 128;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /users {
+      allow list: if isSignedIn();
+    }
+
+    match /admins/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /species/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /elements/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /locations/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /ponies/{ponyId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(ponyId) && isValidPonyCore(incoming()) && incoming().id == ponyId && (
+        isAdmin() ||
+        (
+          incoming().ownerId == request.auth.uid &&
+          (!incoming().keys().hasAny(['isAdmin']) || incoming().isAdmin == false) &&
+          (!incoming().keys().hasAny(['isOriginalAdmin']) || incoming().isOriginalAdmin == false) &&
+          (!incoming().keys().hasAny(['payoutPercentage']) || incoming().payoutPercentage == 0) &&
+          (!incoming().keys().hasAny(['treatsReceived']) || incoming().treatsReceived == 0)
+        )
+      );
+      allow update: if isSignedIn() && isValidPonyCore(incoming()) && (
+        isAdmin() ||
+        (
+          isValidId(ponyId) && (
+            // Owner updating their own pony (profile, splits, status, purchases, node position)
+            (
+              existing().ownerId == request.auth.uid &&
+              incoming().ownerId == existing().ownerId &&
+              !incoming().diff(existing()).affectedKeys().hasAny(['isAdmin', 'isOriginalAdmin', 'payoutPercentage', 'treatsReceived', 'ownerId'])
+            ) ||
+            // Another signed-in user sending a Love Gift / Daily Free Gift (strictly non-negative increase)
+            (
+              incoming().diff(existing()).affectedKeys().hasOnly(['totalOverallLove', 'currentLoveTotal', 'updatedAt']) &&
+              incoming().totalOverallLove is number &&
+              incoming().currentLoveTotal is number &&
+              incoming().totalOverallLove >= existing().get('totalOverallLove', 0) &&
+              incoming().currentLoveTotal >= existing().get('currentLoveTotal', 0)
+            )
+          )
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /connections/{connId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(connId) && incoming().id == connId &&
+        incoming().source is string && incoming().target is string && (
+        isAdmin() ||
+        get(/databases/$(database)/documents/ponies/$(incoming().source)).data.ownerId == request.auth.uid ||
+        get(/databases/$(database)/documents/ponies/$(incoming().target)).data.ownerId == request.auth.uid
+      );
+      allow delete: if isSignedIn() && isValidId(connId) && (
+        isAdmin() ||
+        get(/databases/$(database)/documents/ponies/$(existing().source)).data.ownerId == request.auth.uid ||
+        get(/databases/$(database)/documents/ponies/$(existing().target)).data.ownerId == request.auth.uid
+      );
+    }
+
+    match /statuses/{statusId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /storeBorders/{borderId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /networkState/{stateId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /userSettings/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /appSettings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
