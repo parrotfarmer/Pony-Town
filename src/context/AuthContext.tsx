@@ -128,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
         } catch (err) {
-          handleFirestoreError(err, OperationType.WRITE, `users/${firebaseUser.uid}`);
+          console.warn('Initial profile sync to Firestore pending or offline:', err);
         }
 
         writeCachedProfile(newProfile);
@@ -140,7 +140,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(cached.profile);
         return cached.profile;
       }
-      handleFirestoreError(err, OperationType.GET, `users/${firebaseUser.uid}`);
+      
+      const isKnownAdmin = Boolean(
+        firebaseUser.email &&
+        ['artandtraveltoday@gmail.com', 'ball.bryan.j@gmail.com'].includes(firebaseUser.email.toLowerCase())
+      );
+      const fallbackProfile: UserProfile = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || '',
+        displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Pony Steward',
+        photoURL: firebaseUser.photoURL || undefined,
+        role: isKnownAdmin ? 'admin' : 'user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      writeCachedProfile(fallbackProfile);
+      setProfile(fallbackProfile);
+
+      // Attempt background non-blocking write so persistence queues it when connection is restored
+      setDoc(userRef, fallbackProfile, { merge: true }).catch(() => {});
+      if (isKnownAdmin) {
+        setDoc(adminRef, {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          addedAt: new Date().toISOString(),
+        }, { merge: true }).catch(() => {});
+      }
+
+      console.warn('Firestore is temporarily offline or establishing connection; using authenticated profile:', err);
+      return fallbackProfile;
     }
   };
 
