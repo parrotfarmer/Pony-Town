@@ -35,7 +35,7 @@ export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
 if (typeof window !== 'undefined') {
-  getDocFromServer(doc(dbInstance, 'ponies', '__connection_check__')).catch((error) => {
+  getDocFromServer(doc(dbInstance, 'ponies', 'connection_check')).catch((error) => {
     if (error instanceof Error && error.message.includes('the client is offline')) {
       console.error('Please check your Firebase configuration.', error);
     }
