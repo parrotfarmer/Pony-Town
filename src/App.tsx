@@ -20,7 +20,8 @@ import {
   filterPoniesBySearch,
   PONY_SORT_OPTIONS,
   PonySortKey,
-  hasMagicAndAccountingAccess
+  hasMagicAndAccountingAccess,
+  getUserMainPony
 } from './utils/calculations';
 import { resizeImageToMax } from './utils/imageUtils';
 import { Navbar } from './components/Navbar';
@@ -214,17 +215,9 @@ export default function App() {
       setIsAuthModalOpen(true);
       return;
     }
-    let userPony = ponies.find(p => p.ownerId === user.uid);
-    if (!userPony && ponies.length > 0) {
-      userPony = ponies[0];
-      if (userPony && !userPony.ownerId) {
-        const updated = { ...userPony, ownerId: user.uid };
-        setPonies(prev => prev.map(p => p.id === updated.id ? updated : p));
-        userPony = updated;
-      }
-    }
+    const userPony = getUserMainPony(ponies, user.uid);
     if (!userPony) {
-      alert('Please create or select a pony profile first.');
+      setIsOnboardingOpen(true);
       return;
     }
     setStoreModalPonyId(userPony.id);
@@ -285,6 +278,8 @@ export default function App() {
   const didMigrateLocalConnsRef = useRef(false);
   const didSeedStatusesRef = useRef(false);
   const didSeedNetworkStateRef = useRef(false);
+  const [isFirestorePoniesReady, setIsFirestorePoniesReady] = useState(false);
+  const [isFirestoreConnsReady, setIsFirestoreConnsReady] = useState(false);
 
   // Close initial onboarding automatically if user already completed onboarding or owns a pony in Firestore
   useEffect(() => {
@@ -447,7 +442,7 @@ export default function App() {
   // Auto-connect all ponies owned by the same user in Firebase (only when signed in & synced)
   const lastAutoConnectSigRef = useRef<string>('');
   useEffect(() => {
-    if (!user || !db || ponies.length < 2) return;
+    if (!user || !db || !isFirestorePoniesReady || !isFirestoreConnsReady || ponies.length < 2) return;
 
     const ownedByUserCount = authIsAdmin ? 2 : ponies.reduce((cnt, p) => cnt + (p.ownerId === user.uid ? 1 : 0), 0);
     if (!authIsAdmin && ownedByUserCount < 2) return;
@@ -506,7 +501,7 @@ export default function App() {
         console.warn('Firestore auto-connect sync error:', err);
       });
     }
-  }, [user, authIsAdmin, ponies, connections, targetDate]);
+  }, [user, authIsAdmin, isFirestorePoniesReady, isFirestoreConnsReady, ponies, connections, targetDate]);
 
   // Stop disabled/hidden Harvester Ledger sorting & stats when not admin
   const sortedAndFilteredLedgerPonies = useMemo(() => {
@@ -627,6 +622,9 @@ export default function App() {
     const unsubPonies = onSnapshot(
       collection(db, 'ponies'),
       (snap) => {
+        if (!snap.empty || !snap.metadata.fromCache) {
+          setIsFirestorePoniesReady(true);
+        }
         if (snap.empty) {
           if (authIsAdmin && !didMigrateLocalPoniesRef.current && latestPoniesRef.current.length > 0) {
             didMigrateLocalPoniesRef.current = true;
@@ -639,6 +637,8 @@ export default function App() {
               );
             });
             batch.commit().catch(() => {});
+          } else if (!snap.metadata.fromCache) {
+            setPonies([]);
           }
           return;
         }
@@ -683,6 +683,9 @@ export default function App() {
     const unsubConnections = onSnapshot(
       collection(db, 'connections'),
       (snap) => {
+        if (!snap.empty || !snap.metadata.fromCache) {
+          setIsFirestoreConnsReady(true);
+        }
         if (snap.empty) {
           if (authIsAdmin && !didMigrateLocalConnsRef.current && latestConnectionsRef.current.length > 0) {
             didMigrateLocalConnsRef.current = true;
@@ -692,7 +695,7 @@ export default function App() {
               batch.set(doc(db, 'connections', safeId), stripUndefined({ ...c, id: safeId }));
             });
             batch.commit().catch(() => {});
-          } else if (didMigrateLocalConnsRef.current) {
+          } else if (didMigrateLocalConnsRef.current || !snap.metadata.fromCache) {
             setConnections([]);
           }
           return;
@@ -1123,8 +1126,11 @@ export default function App() {
             isOriginalAdmin: false,
             isAdmin: false,
           };
-      setDoc(doc(db, 'ponies', safeId), stripUndefined({ ...firestoreDoc, updatedAt: new Date().toISOString() })).catch((err) => {
-        console.warn('Firestore add pony error:', err);
+      const ponyWritePromise = setDoc(
+        doc(db, 'ponies', safeId),
+        stripUndefined({ ...firestoreDoc, updatedAt: new Date().toISOString() })
+      ).catch((err) => {
+        console.error('Firestore add pony error:', err);
       });
 
       if (connectToId) {
@@ -1138,7 +1144,11 @@ export default function App() {
           startDate: targetDate || new Date().toISOString().split('T')[0],
         };
         setConnections((prev) => [...prev, newConn]);
-        setDoc(doc(db, 'connections', connId), stripUndefined(newConn)).catch(() => {});
+        void ponyWritePromise.then(() =>
+          setDoc(doc(db, 'connections', connId), stripUndefined(newConn)).catch((err) => {
+            console.error('Firestore initial connection error:', err);
+          })
+        );
       }
       setSelectedPonyId(safeId);
       setFullDetailPonyId(safeId);
@@ -1366,7 +1376,7 @@ export default function App() {
       setIsOnboardingOpen(true);
       return;
     }
-    let userPony = ponies.find(p => p.ownerId === user.uid);
+    const userPony = getUserMainPony(ponies, user.uid);
     if (!userPony) {
       setIsOnboardingOpen(true);
     } else {

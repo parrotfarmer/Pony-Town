@@ -79,16 +79,16 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (!q) return [];
     return ponies.filter((p) => {
       const customMatches = Object.entries(p.customData || {}).some(
-        ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q)
+        ([k, v]) => (k || '').toLowerCase().includes(q) || String(v || '').toLowerCase().includes(q)
       );
 
       return (
-        p.name.toLowerCase().includes(q) ||
-        p.species.toLowerCase().includes(q) ||
-        p.element.toLowerCase().includes(q) ||
-        p.location.toLowerCase().includes(q) ||
-        p.notes.toLowerCase().includes(q) ||
-        (p.ownerName && p.ownerName.toLowerCase().includes(q)) ||
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.species || '').toLowerCase().includes(q) ||
+        (p.element || '').toLowerCase().includes(q) ||
+        (p.location || '').toLowerCase().includes(q) ||
+        (p.notes || '').toLowerCase().includes(q) ||
+        (p.ownerName || '').toLowerCase().includes(q) ||
         customMatches
       );
     });

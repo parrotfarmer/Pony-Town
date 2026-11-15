@@ -5,15 +5,15 @@ import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
+  doc,
+  getDocFromServer,
   Firestore,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 const rawDbId = firebaseConfig.firestoreDatabaseId;
-const dbId = (!rawDbId || rawDbId === '(default)' || (rawDbId.startsWith('ai-studio-') && firebaseConfig.projectId !== 'ai-studio-ponyloveharvestn-796203f7-25b3-4cf7-96ac-19b7d53605c1'))
-  ? undefined
-  : rawDbId;
+const dbId = !rawDbId || rawDbId === '(default)' ? undefined : rawDbId;
 
 let dbInstance: Firestore;
 try {
@@ -23,6 +23,7 @@ try {
       localCache: persistentLocalCache({
         tabManager: persistentMultipleTabManager(),
       }),
+      experimentalAutoDetectLongPolling: true,
     },
     dbId
   );
@@ -32,6 +33,14 @@ try {
 export const db = dbInstance;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+if (typeof window !== 'undefined') {
+  getDocFromServer(doc(dbInstance, 'ponies', '__connection_check__')).catch((error) => {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Please check your Firebase configuration.', error);
+    }
+  });
+}
 
 export enum OperationType {
   CREATE = 'create',

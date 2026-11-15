@@ -8,7 +8,8 @@ import {
   calculateLoveFlowStats,
   generateHarvestTimeline,
   formatLoveNumber,
-  hasMagicAndAccountingAccess
+  hasMagicAndAccountingAccess,
+  getUserMainPony
 } from '../utils/calculations';
 import { 
   X, 
@@ -191,7 +192,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
   const activeViewerPony = isSimulatingNonAdmin
     ? allPonies.find(p => p.id === currentUserPonyId)
-    : (user ? allPonies.find(p => p.ownerId === user.uid) : null);
+    : (user ? getUserMainPony(allPonies, user.uid) : null);
 
   const canSeeMagicAndAccounting = useMemo(() => {
     return hasMagicAndAccountingAccess(activeViewerPony || pony, statuses, isAdmin && !isSimulatingNonAdmin);
@@ -487,8 +488,16 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     return purchased.includes(bStatus.id) || (bStatus.badgeIcon && purchased.includes(bStatus.badgeIcon));
   };
 
-  const ponyConnections = connections.filter(
-    (c) => c.source === pony.id || c.target === pony.id
+  const ponyIdSet = useMemo(() => new Set(allPonies.map((p) => p.id)), [allPonies]);
+
+  const ponyConnections = useMemo(
+    () =>
+      connections.filter(
+        (c) =>
+          (c.source === pony.id && ponyIdSet.has(c.target)) ||
+          (c.target === pony.id && ponyIdSet.has(c.source))
+      ),
+    [connections, pony.id, ponyIdSet]
   );
 
   const isConnectedToViewer = useMemo(() => {
@@ -504,10 +513,14 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
   const connectablePonies = useMemo(() => {
     if (!ponySearchQuery.trim()) return [];
-    const q = ponySearchQuery.toLowerCase();
+    const q = ponySearchQuery.trim().toLowerCase();
     return allPonies.filter(
-      (p) => p.id !== pony.id && !existingConnectedIds.has(p.id) && 
-      (p.name.toLowerCase().includes(q) || p.species.toLowerCase().includes(q))
+      (p) =>
+        p.id !== pony.id &&
+        !existingConnectedIds.has(p.id) &&
+        ((p.name || '').toLowerCase().includes(q) ||
+          (p.species || '').toLowerCase().includes(q) ||
+          (p.ownerName || '').toLowerCase().includes(q))
     );
   }, [allPonies, pony.id, existingConnectedIds, ponySearchQuery]);
 

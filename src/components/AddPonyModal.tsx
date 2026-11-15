@@ -76,13 +76,13 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
     if (!canAddPony || !user) return;
     if (!name.trim()) return;
 
-    const id = `pony-${Date.now().toString().slice(-4)}`;
+    const id = `pony-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const x = initialPos?.x ?? Math.round(450 + (Math.random() - 0.5) * 250);
     const y = initialPos?.y ?? Math.round(300 + (Math.random() - 0.5) * 180);
 
     const newPony: PonyNode = {
       id,
-      name: name.trim(),
+      name: name.trim().slice(0, 128),
       species: species.trim() || '',
       element: element.trim() || '',
       location: location.trim() || '',

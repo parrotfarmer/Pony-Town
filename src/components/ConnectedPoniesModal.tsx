@@ -48,9 +48,12 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
 
   if (!isOpen || !pony) return null;
 
-  // Filter all connections for this pony
+  // Filter all connections for this pony where the connected pony exists
+  const ponyIdSet = new Set(allPonies.map((p) => p.id));
   const ponyConnections = connections.filter(
-    (c) => c.source === pony.id || c.target === pony.id
+    (c) =>
+      (c.source === pony.id && ponyIdSet.has(c.target)) ||
+      (c.target === pony.id && ponyIdSet.has(c.source))
   );
 
   const filteredConnections = ponyConnections.filter((conn) => {
@@ -58,11 +61,12 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
     const otherId = conn.source === pony.id ? conn.target : conn.source;
     const otherPony = allPonies.find((p) => p.id === otherId);
     if (!otherPony) return false;
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     return (
-      otherPony.name.toLowerCase().includes(q) ||
-      otherPony.species?.toLowerCase().includes(q) ||
-      otherPony.element?.toLowerCase().includes(q)
+      (otherPony.name || '').toLowerCase().includes(q) ||
+      (otherPony.species || '').toLowerCase().includes(q) ||
+      (otherPony.element || '').toLowerCase().includes(q) ||
+      (otherPony.ownerName || '').toLowerCase().includes(q)
     );
   });
 

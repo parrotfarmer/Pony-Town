@@ -75,8 +75,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
     const defaultStatusId = statuses[0]?.id || 'active';
 
     const newPony: PonyNode = {
-      id: `pony-${Date.now()}`,
-      name: ponyName.trim(),
+      id: `pony-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: ponyName.trim().slice(0, 128),
       species: species.trim() || 'Pony',
       element: element.trim() || 'Love',
       location: location.trim() || 'Equestria',

@@ -1019,16 +1019,17 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
 
   const isMatch = (pony: PonyNode) => {
     if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
     const customMatches = Object.entries(pony.customData || {}).some(
-      ([k, v]) => k.toLowerCase().includes(q) || v.toLowerCase().includes(q)
+      ([k, v]) => (k || '').toLowerCase().includes(q) || String(v || '').toLowerCase().includes(q)
     );
     return (
-      pony.name.toLowerCase().includes(q) ||
-      pony.species.toLowerCase().includes(q) ||
-      pony.element.toLowerCase().includes(q) ||
-      pony.location.toLowerCase().includes(q) ||
-      pony.notes.toLowerCase().includes(q) ||
+      (pony.name || '').toLowerCase().includes(q) ||
+      (pony.species || '').toLowerCase().includes(q) ||
+      (pony.element || '').toLowerCase().includes(q) ||
+      (pony.location || '').toLowerCase().includes(q) ||
+      (pony.notes || '').toLowerCase().includes(q) ||
+      (pony.ownerName || '').toLowerCase().includes(q) ||
       customMatches
     );
   };
