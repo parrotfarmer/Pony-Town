@@ -18,7 +18,7 @@ try {
   dbInstance = initializeFirestore(
     app,
     {
-      experimentalAutoDetectLongPolling: true,
+      experimentalForceLongPolling: true,
     },
     dbId
   );

@@ -419,7 +419,7 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                       <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.5s.7 2.8 1.9 5.2l3.7-2.9z"/>
                       <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 17C3.7 20.7 7.5 24 12 24z"/>
                     </svg>
-                    Google Account (Popup)
+                    Google Account
                   </button>
                 )}
               </div>
