@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Pony Love Harvest & Network Matrix</title>
     <meta name="description" content="Interactive pony web network tracker with real-time love harvesting metrics, node data storage, searchable directory, editable yields and duration, and magical power conversion analytics." />
     <meta property="og:title" content="Pony Love Harvest & Network Matrix" />
@@ -12,6 +15,106 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function () {
+        var GUARD_KEY = 'pony_hard_refresh_guard_v1';
+        var WINDOW_MS = 60000;
+        var MAX_TRIES = 2;
+
+        function canAutoRefresh() {
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+          try {
+            var raw = sessionStorage.getItem(GUARD_KEY);
+            if (!raw) return true;
+            var parsed = JSON.parse(raw);
+            if (!parsed || Date.now() - (parsed.ts || 0) > WINDOW_MS) return true;
+            return (parsed.count || 0) < MAX_TRIES;
+          } catch (e) {
+            return true;
+          }
+        }
+
+        function triggerHardRefresh() {
+          if (!canAutoRefresh()) return;
+          try {
+            var raw = sessionStorage.getItem(GUARD_KEY);
+            var parsed = raw ? JSON.parse(raw) : { count: 0, ts: 0 };
+            var count = (parsed && Date.now() - (parsed.ts || 0) <= WINDOW_MS) ? (parsed.count || 0) : 0;
+            sessionStorage.setItem(GUARD_KEY, JSON.stringify({ count: count + 1, ts: Date.now() }));
+          } catch (e) {}
+
+          var finishReload = function () {
+            try {
+              var u = new URL(window.location.href);
+              u.searchParams.set('_cb', String(Date.now()));
+              window.location.replace(u.toString());
+            } catch (e) {
+              window.location.reload();
+            }
+          };
+
+          var cleanupTasks = [];
+          try {
+            if ('caches' in window) {
+              cleanupTasks.push(
+                window.caches.keys().then(function (names) {
+                  return Promise.all(names.map(function (n) { return window.caches.delete(n); }));
+                })
+              );
+            }
+          } catch (e) {}
+
+          try {
+            if ('serviceWorker' in navigator) {
+              cleanupTasks.push(
+                navigator.serviceWorker.getRegistrations().then(function (regs) {
+                  return Promise.all(regs.map(function (r) { return r.unregister(); }));
+                })
+              );
+            }
+          } catch (e) {}
+
+          if (cleanupTasks.length > 0) {
+            Promise.allSettled(cleanupTasks).then(finishReload, finishReload);
+          } else {
+            finishReload();
+          }
+        }
+
+        window.__ponyHardRefresh = triggerHardRefresh;
+
+        window.addEventListener('error', function (event) {
+          var target = event && event.target;
+          if (!target || !target.tagName) return;
+          var tag = target.tagName.toUpperCase();
+          var isAppScript = tag === 'SCRIPT' && target.src;
+          var isAppStyle = tag === 'LINK' && target.rel === 'stylesheet' && target.href;
+          if (!isAppScript && !isAppStyle) return;
+          try {
+            var assetUrl = new URL(target.src || target.href, window.location.href);
+            if (assetUrl.origin === window.location.origin) {
+              triggerHardRefresh();
+            }
+          } catch (e) {}
+        }, true);
+
+        window.addEventListener('vite:preloadError', function (event) {
+          if (event && typeof event.preventDefault === 'function') event.preventDefault();
+          triggerHardRefresh();
+        });
+
+        var bootTimer = setTimeout(function () {
+          var root = document.getElementById('root');
+          if (root && root.childElementCount === 0 && document.visibilityState !== 'hidden') {
+            triggerHardRefresh();
+          }
+        }, 10000);
+
+        window.__cancelBootWatchdog = function () {
+          clearTimeout(bootTimer);
+        };
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

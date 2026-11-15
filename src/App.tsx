@@ -250,7 +250,7 @@ export default function App() {
     onConfirm: () => {},
   });
 
-  const { user, isAdmin: authIsAdmin } = useAuth();
+  const { user, loading: authLoading, isAdmin: authIsAdmin } = useAuth();
   const [isSimulatingNonAdmin, setIsSimulatingNonAdmin] = useState(false);
   const isAdmin = authIsAdmin && !isSimulatingNonAdmin;
 
@@ -590,6 +590,36 @@ export default function App() {
       flushAllPending();
     };
   }, [flushPonyToFirestore]);
+
+  const prevUserUidRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (authLoading) return;
+    const currUid = user?.uid || null;
+    if (prevUserUidRef.current && !currUid) {
+      pendingPonyTimersRef.current.forEach((timer) => clearTimeout(timer));
+      pendingPonyTimersRef.current.clear();
+      pendingPonyPayloadsRef.current.clear();
+      lastSyncedPonyHashRef.current.clear();
+      lastAutoConnectSigRef.current = '';
+      setIsSimulatingNonAdmin(false);
+      setSelectedPonyId(null);
+      setFullDetailPonyId(null);
+      setIsBulkEditorOpen(false);
+      setIsAddModalOpen(false);
+      setIsStatusManagerOpen(false);
+      setIsAuthModalOpen(false);
+      setIsAdminModalOpen(false);
+      setIsStoreModalOpen(false);
+      setStoreModalPonyId(null);
+      setIsThemeSettingsOpen(false);
+      setIsRankingsModalOpen(false);
+      try {
+        localStorage.removeItem('pony_network_onboarding_completed');
+      } catch {}
+      setIsOnboardingOpen(true);
+    }
+    prevUserUidRef.current = currUid;
+  }, [user, authLoading]);
 
   // Debounced sync helper for /networkState/global (admin-only writes)
   const networkStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

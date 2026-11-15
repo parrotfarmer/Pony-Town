@@ -3,23 +3,103 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Pony Love Harvest & Network Matrix</title>
     <script type="text/javascript">
-      // Single Page App redirect fallback for GitHub Pages
-      var l = window.location;
-      if (l.search) {
-        var q = l.search.slice(1).split('&').map(function(s) { return s.replace(/~and~/g, '&'); }).join('?');
-        window.history.replaceState(null, null, './?' + q + l.hash);
-      } else {
-        window.history.replaceState(null, null, './');
-      }
+      /* Cache-busted hard refresh recovery for 404 or stale deployment */
+      (function () {
+        var GUARD_KEY = 'pony_hard_refresh_guard_v1';
+        var WINDOW_MS = 60000;
+        var MAX_TRIES = 2;
+
+        function canAutoRedirect() {
+          if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+          try {
+            var raw = sessionStorage.getItem(GUARD_KEY);
+            if (!raw) return true;
+            var parsed = JSON.parse(raw);
+            if (!parsed || Date.now() - (parsed.ts || 0) > WINDOW_MS) return true;
+            return (parsed.count || 0) < MAX_TRIES;
+          } catch (e) {
+            return true;
+          }
+        }
+
+        function recordTry(reset) {
+          try {
+            var raw = sessionStorage.getItem(GUARD_KEY);
+            var parsed = raw ? JSON.parse(raw) : { count: 0, ts: 0 };
+            var count = (!reset && parsed && Date.now() - (parsed.ts || 0) <= WINDOW_MS) ? (parsed.count || 0) : 0;
+            sessionStorage.setItem(GUARD_KEY, JSON.stringify({ count: reset ? 0 : count + 1, ts: Date.now() }));
+          } catch (e) {}
+        }
+
+        function redirectFresh(force) {
+          recordTry(!!force);
+          var ts = Date.now();
+          var targetUrl = './?_cb=' + ts;
+          try {
+            var l = window.location;
+            var params = new URLSearchParams(l.search || '');
+            params.set('_cb', String(ts));
+            targetUrl = './?' + params.toString() + (l.hash || '');
+          } catch (e) {}
+
+          var go = function () {
+            window.location.replace(targetUrl);
+          };
+
+          var cleanupTasks = [];
+          try {
+            if ('caches' in window) {
+              cleanupTasks.push(
+                window.caches.keys().then(function (names) {
+                  return Promise.all(names.map(function (n) { return window.caches.delete(n); }));
+                })
+              );
+            }
+          } catch (e) {}
+
+          try {
+            if ('serviceWorker' in navigator) {
+              cleanupTasks.push(
+                navigator.serviceWorker.getRegistrations().then(function (regs) {
+                  return Promise.all(regs.map(function (r) { return r.unregister(); }));
+                })
+              );
+            }
+          } catch (e) {}
+
+          if (cleanupTasks.length > 0) {
+            Promise.allSettled(cleanupTasks).then(go, go);
+          } else {
+            go();
+          }
+        }
+
+        window.__manualFreshReload = function () {
+          redirectFresh(true);
+        };
+
+        if (canAutoRedirect()) {
+          redirectFresh(false);
+        }
+      })();
     </script>
-    <meta http-equiv="refresh" content="0;URL='./'" />
   </head>
-  <body>
-    <div style="background:#020617; color:#f1f5f9; font-family:sans-serif; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
-      <h2 style="font-size:20px; font-weight:bold; margin-bottom:8px;">Loading Pony Love Network...</h2>
-      <p style="font-size:14px; opacity:0.7;">Redirecting to application...</p>
+  <body style="margin:0;background:#020617;color:#f1f5f9;">
+    <div style="background:#020617;color:#f1f5f9;font-family:sans-serif;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;">
+      <h2 style="font-size:20px;font-weight:bold;margin-bottom:8px;">Loading Pony Love Network...</h2>
+      <p style="font-size:14px;opacity:0.7;margin-bottom:16px;">Checking for the latest version...</p>
+      <button
+        type="button"
+        onclick="window.__manualFreshReload && window.__manualFreshReload()"
+        style="padding:10px 18px;border-radius:10px;background:#db2777;color:#ffffff;font-weight:bold;font-size:13px;border:none;cursor:pointer;"
+      >
+        Reload Latest Version
+      </button>
     </div>
   </body>
 </html>

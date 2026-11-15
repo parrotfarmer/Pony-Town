@@ -221,6 +221,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    const prevUid = user?.uid || auth.currentUser?.uid;
+    if (prevUid) {
+      try {
+        localStorage.removeItem(`${PROFILE_CACHE_PREFIX}${prevUid}`);
+      } catch {}
+    }
+    try {
+      localStorage.removeItem('pony_network_onboarding_completed');
+    } catch {}
     await signOut(auth);
     setUser(null);
     setProfile(null);

@@ -33,6 +33,7 @@ try {
 export const db = dbInstance;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 if (typeof window !== 'undefined') {
   getDocFromServer(doc(dbInstance, 'ponies', 'connection_check')).catch((error) => {

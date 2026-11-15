@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { CustomStatus, PonyNode } from '../types/pony';
 import { 
@@ -59,6 +59,30 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
   const [secretElement, setSecretElement] = useState('');
   const [secretNotes, setSecretNotes] = useState('');
   const [cropperRawImage, setCropperRawImage] = useState<string | null>(null);
+
+  const prevUserUidRef = useRef<string | null>(user?.uid || null);
+  useEffect(() => {
+    const currUid = user?.uid || null;
+    if (!isOpen || (prevUserUidRef.current && !currUid)) {
+      setStep('splash');
+      setAuthMode('register');
+      setEmail('');
+      setPassword('');
+      setDisplayName('');
+      setAuthError(null);
+      setPonyName('');
+      setAvatarIcon('🦄');
+      setSpecies('Alicorn');
+      setElement('Magic');
+      setLocation('Equestria');
+      setNotes('');
+      setSecretSpecies('');
+      setSecretElement('');
+      setSecretNotes('');
+      setCropperRawImage(null);
+    }
+    prevUserUidRef.current = currUid;
+  }, [isOpen, user]);
 
   if (!isOpen) return null;
 

@@ -255,7 +255,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     () => initialTaxonomies?.locationOptions || []
   );
   const [loading, setLoading] = useState(() => !initialTaxonomies);
-  const { user, isAdmin } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth();
 
   const [adminSettings, setAdminSettings] = useState<AdminAppSettings>(() => ({
     ...DEFAULT_ADMIN_SETTINGS,
@@ -438,6 +438,26 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   useEffect(() => {
     if (!user) {
+      if (!authLoading) {
+        if (userSettingsTimerRef.current) {
+          clearTimeout(userSettingsTimerRef.current);
+          userSettingsTimerRef.current = null;
+        }
+        pendingUserSettingsRef.current = null;
+        lastUserSettingsHashRef.current = '';
+        setOnboardingCompleted(false);
+        setUnlockedBorders([]);
+        setUnlockedPerks([]);
+        setUnlockedBadges([]);
+        setDailyFreeGifts({});
+        try {
+          localStorage.removeItem('pony_network_onboarding_completed');
+          localStorage.removeItem('unlocked_borders');
+          localStorage.removeItem('unlocked_perks');
+          localStorage.removeItem('unlocked_badges');
+          localStorage.removeItem('pony_free_gifts_map_v1');
+        } catch {}
+      }
       setLoading(false);
       return;
     }
@@ -591,7 +611,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       cancelled = true;
       unsubAdminSettings();
     };
-  }, [user]);
+  }, [user, authLoading]);
 
   const updateAdminSettings = async (partial: Partial<AdminAppSettings>) => {
     if (!isAdmin) return;

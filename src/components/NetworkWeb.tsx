@@ -188,17 +188,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
     if (isSimulatingNonAdmin) {
       return Boolean(currentUserPonyId && pony.id === currentUserPonyId);
     }
-    if (isAdmin) {
-      return true;
-    }
-    if (currentUserId && pony.ownerId === currentUserId) {
-      return true;
-    }
-    if (currentUserId && currentUserPonyId && pony.id === currentUserPonyId) {
-      return true;
-    }
-    return false;
-  }, [isSimulatingNonAdmin, isAdmin, currentUserId, currentUserPonyId]);
+    return Boolean(currentUserId && pony.ownerId === currentUserId);
+  }, [isSimulatingNonAdmin, currentUserId, currentUserPonyId]);
 
   const nodeMap = useMemo(() => new Map(ponies.map(p => [p.id, p])), [ponies]);
 
@@ -1907,8 +1898,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
 
 
 
-              {/* Delete Pony: only available when pony is owned by the user */}
-              {isOwner(contextPony) && (
+              {/* Delete Pony: available when pony is owned by the user or admin */}
+              {(isOwner(contextPony) || isAdmin) && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
