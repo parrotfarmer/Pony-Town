@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { ImageCropperModal } from './ImageCropperModal';
 import { EmoticonIconPicker } from './EmoticonIconPicker';
 import { resizeImageToMax } from '../utils/imageUtils';
+import { getSortedStatuses } from '../utils/calculations';
 
 interface AddPonyModalProps {
   isOpen: boolean;
@@ -95,7 +96,7 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
       loveRatePerDay: DEFAULT_PONY_CAPACITY,
       startDate: targetDate || new Date().toISOString().split('T')[0],
       customDaysOverride: null,
-      status: statuses[0]?.id || 'active',
+      status: getSortedStatuses(statuses)[0]?.id || 'active',
       ownerId: user.uid,
       ownerName: user.displayName || user.email?.split('@')[0] || 'Community Member',
       customData: {},
@@ -127,6 +128,7 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
 
   const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     try {
       const resizedRaw = await resizeImageToMax(file, 400, 400);
@@ -163,7 +165,7 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
           {/* Name & Avatar Icon */}
           <div className="flex items-center gap-3">
             <div className="relative group/icon w-14 h-14 flex-shrink-0">
-              {avatarIcon.startsWith('data:image') ? (
+              {avatarIcon.startsWith('data:image') || avatarIcon.startsWith('http') ? (
                 <img 
                   src={avatarIcon} 
                   alt="Preview" 
@@ -183,10 +185,22 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                 </div>
               )}
               {adminSettings.allowAvatarImageUpload && (
-                <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl opacity-0 group-hover/icon:opacity-100 transition-opacity cursor-pointer">
-                  <Upload className="w-4 h-4 text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
-                </label>
+                <>
+                  <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl opacity-0 group-hover/icon:opacity-100 transition-opacity cursor-pointer" title="Upload custom avatar image">
+                    <Upload className="w-4 h-4 text-white" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
+                  </label>
+                  <span
+                    className="pointer-events-none absolute -bottom-1 -right-1 w-4 h-4 rounded-full border flex items-center justify-center shadow"
+                    style={{
+                      backgroundColor: theme.buttonColor,
+                      color: theme.buttonTextColor,
+                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                    }}
+                  >
+                    <Upload className="w-2.5 h-2.5" />
+                  </span>
+                </>
               )}
             </div>
             <div className="flex-1">
@@ -205,9 +219,25 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
 
           {/* Emoticon / Emoji Profile Icon Picker */}
           <div className="bg-slate-950/60 p-3 rounded-xl border space-y-1.5" style={{ borderColor: theme.borderColor }}>
-            <label className="text-[10px] font-bold uppercase block opacity-70" style={{ color: theme.textColor }}>
-              Profile Icon (Emoji / Emoticon)
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-[10px] font-bold uppercase block opacity-70" style={{ color: theme.textColor }}>
+                {adminSettings.allowAvatarImageUpload ? 'Profile Icon / Custom Avatar Image' : 'Profile Icon (Emoji / Emoticon)'}
+              </label>
+              {adminSettings.allowAvatarImageUpload && (
+                <label
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10px] font-bold cursor-pointer hover:opacity-90 transition-all shadow-sm"
+                  style={{
+                    backgroundColor: theme.buttonColor,
+                    color: theme.buttonTextColor,
+                    borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                  }}
+                >
+                  <Upload className="w-3 h-3" />
+                  <span>Upload Image</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
+                </label>
+              )}
+            </div>
             <EmoticonIconPicker
               value={avatarIcon}
               onChange={setAvatarIcon}

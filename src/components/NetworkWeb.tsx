@@ -19,6 +19,7 @@ import {
   Check
 } from 'lucide-react';
 import { AdminConfirmModal } from './AdminConfirmModal';
+import { PonyAvatar } from './PonyAvatar';
 import { useSettings } from '../context/SettingsContext';
 
 interface NetworkWebProps {
@@ -1572,7 +1573,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                 />
 
                 {/* Avatar Icon (Image or Emoji/Emoticon) */}
-                {pony.avatarIcon && pony.avatarIcon.startsWith('data:image') ? (
+                {pony.avatarIcon && (pony.avatarIcon.startsWith('data:image') || pony.avatarIcon.startsWith('http')) ? (
                   <>
                     <defs>
                       <clipPath id={`clip-${pony.id}`}>
@@ -1833,7 +1834,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
             <>
               <div className="px-3 py-1.5 border-b border-purple-500/20 text-[11px] font-bold text-pink-300 flex items-center gap-1.5">
                 <span className="w-5 h-5 rounded flex items-center justify-center shrink-0 overflow-hidden bg-slate-900 border border-slate-800" style={{ borderColor: theme.borderColor }}>
-                  {contextPony.avatarIcon && contextPony.avatarIcon.startsWith('data:image') ? (
+                  {contextPony.avatarIcon && (contextPony.avatarIcon.startsWith('data:image') || contextPony.avatarIcon.startsWith('http')) ? (
                     <img src={contextPony.avatarIcon} alt="" className="w-full h-full object-cover" />
                   ) : (
                     contextPony.avatarIcon
@@ -2020,7 +2021,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
             </div>
 
             <div className="my-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center gap-2.5">
-              <span className="text-2xl">{ponyPendingDelete.avatarIcon}</span>
+              <PonyAvatar pony={ponyPendingDelete} theme={theme} size="md" />
               <div>
                 <strong className="text-white text-xs block">{ponyPendingDelete.name}</strong>
               </div>

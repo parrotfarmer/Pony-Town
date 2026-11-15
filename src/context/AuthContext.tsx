@@ -2,13 +2,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   User, 
   signInWithPopup, 
+  signInWithRedirect,
   signOut, 
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updateProfile
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, limit } from 'firebase/firestore';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from '../firebase';
 import { UserProfile, UserRole } from '../types/auth';
 
@@ -75,35 +76,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const snap = await getDoc(userRef);
       if (snap.exists()) {
         const existingData = snap.data() as UserProfile;
+        const effectiveRole: UserRole = existingData.role || 'user';
 
-        // Skip redundant admins doc read if user profile already has admin role
-        let adminSnapExists = existingData.role === 'admin';
-        if (!adminSnapExists) {
-          try {
-            const adminSnap = await getDoc(adminRef);
-            adminSnapExists = adminSnap.exists();
-          } catch (e) {}
-        }
-
-        if (adminSnapExists && existingData.role !== 'admin') {
-          const updated = { ...existingData, role: 'admin' as UserRole, updatedAt: new Date().toISOString() };
-          try {
-            await updateDoc(userRef, { role: 'admin', updatedAt: new Date().toISOString() });
-          } catch (e) {}
-          writeCachedProfile(updated);
-          setProfile(updated);
-          return updated;
-        }
-
-        writeCachedProfile(existingData);
-        setProfile(existingData);
-        return existingData;
+        const updated = { ...existingData, role: effectiveRole };
+        writeCachedProfile(updated);
+        setProfile(updated);
+        return updated;
       } else {
-        // Check if any user exists using limit(1) to avoid scanning the entire users collection
+        // Check if any admin exists in the system yet. If no admins exist, the first user to log in becomes admin.
         let initialRole: UserRole = 'user';
         try {
-          const usersSnap = await getDocs(query(collection(db, 'users'), limit(1)));
-          if (usersSnap.empty) {
+          const adminsSnap = await getDocs(query(collection(db, 'admins'), limit(1)));
+          if (adminsSnap.empty) {
             initialRole = 'admin';
           }
         } catch (e) {}
@@ -141,16 +125,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return cached.profile;
       }
       
-      const isKnownAdmin = Boolean(
-        firebaseUser.email &&
-        ['artandtraveltoday@gmail.com', 'ball.bryan.j@gmail.com'].includes(firebaseUser.email.toLowerCase())
-      );
       const fallbackProfile: UserProfile = {
         uid: firebaseUser.uid,
         email: firebaseUser.email || '',
         displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Pony Steward',
         photoURL: firebaseUser.photoURL || undefined,
-        role: isKnownAdmin ? 'admin' : 'user',
+        role: 'user',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -160,13 +140,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Attempt background non-blocking write so persistence queues it when connection is restored
       setDoc(userRef, fallbackProfile, { merge: true }).catch(() => {});
-      if (isKnownAdmin) {
-        setDoc(adminRef, {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email || '',
-          addedAt: new Date().toISOString(),
-        }, { merge: true }).catch(() => {});
-      }
 
       console.warn('Firestore is temporarily offline or establishing connection; using authenticated profile:', err);
       return fallbackProfile;
@@ -192,8 +165,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await signInWithPopup(auth, googleProvider);
       await fetchOrCreateProfile(res.user);
     } catch (err) {
-      console.error('Google Sign In Error:', err);
-      throw err;
+      console.warn('Google Sign In Popup blocked or failed, falling back to redirect:', err);
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (redirectErr) {
+        console.error('Google Sign In Redirect Error:', redirectErr);
+        throw redirectErr;
+      }
     }
   };
 
@@ -246,7 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (newRole === 'admin') {
         await setDoc(adminRef, { uid: targetUid, addedAt: new Date().toISOString() });
       } else {
-        await setDoc(adminRef, { uid: targetUid, revokedAt: new Date().toISOString() });
+        await deleteDoc(adminRef);
       }
       if (targetUid === user?.uid && profile) {
         const updatedProfile = { ...profile, role: newRole, updatedAt: new Date().toISOString() };

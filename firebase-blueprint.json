@@ -98,6 +98,16 @@
       },
       "required": ["id", "name", "multiplier", "color"]
     },
+    "BadgePage": {
+      "title": "Badge Information Page",
+      "description": "Private badge information page content separated from public status catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id"]
+    },
     "StoreBorder": {
       "title": "Store Border",
       "description": "Purchasable profile border catalog item",
@@ -185,6 +195,10 @@
     "/statuses/{id}": {
       "schema": { "$ref": "#/entities/StatusTier" },
       "description": "Status tiers and exchange badges"
+    },
+    "/badgePages/{statusId}": {
+      "schema": { "$ref": "#/entities/BadgePage" },
+      "description": "Secret badge information pages restricted to authenticated users"
     },
     "/storeBorders/{id}": {
       "schema": { "$ref": "#/entities/StoreBorder" },

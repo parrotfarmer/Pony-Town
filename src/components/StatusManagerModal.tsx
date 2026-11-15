@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CustomStatus, PonyNode } from '../types/pony';
-import { X, Plus, Trash2, Sliders, Check, Edit3 } from 'lucide-react';
+import { X, Plus, Trash2, Edit3 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { resizeImageToMax } from '../utils/imageUtils';
+import { BadgeSpecialPageModal } from './BadgeSpecialPageModal';
+
+const isImageIcon = (val?: string) =>
+  Boolean(val && (val.startsWith('data:image') || val.startsWith('http')));
 
 interface StatusManagerModalProps {
   isOpen: boolean;
@@ -44,11 +48,66 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
   const [newBorderPrice, setNewBorderPrice] = useState<number>(500);
   const [newBorderIcon, setNewBorderIcon] = useState('🌟');
   const [newBorderColor, setNewBorderColor] = useState('#ec4899');
+  const [editingBadgeStatusId, setEditingBadgeStatusId] = useState<string | null>(null);
+
+  // Buffered status edits prevent Firestore onSnapshot re-sorting from stealing input focus while typing
+  const [draftStatuses, setDraftStatuses] = useState<CustomStatus[]>(statuses);
+  const draftStatusesRef = useRef<CustomStatus[]>(statuses);
+  const statusCommitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!statusCommitTimerRef.current) {
+      draftStatusesRef.current = statuses;
+      setDraftStatuses(statuses);
+    }
+  }, [statuses]);
+
+  const [borderPriceDrafts, setBorderPriceDrafts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    setBorderPriceDrafts((prev) => {
+      const next: Record<string, number> = {};
+      storeBorders.forEach((b) => {
+        next[b.id] = prev[b.id] !== undefined && prev[b.id] !== b.price ? b.price : b.price;
+      });
+      return next;
+    });
+  }, [storeBorders]);
+
+  const flushPendingCommits = () => {
+    if (statusCommitTimerRef.current) {
+      clearTimeout(statusCommitTimerRef.current);
+      statusCommitTimerRef.current = null;
+      onUpdateStatuses(draftStatusesRef.current);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (statusCommitTimerRef.current) {
+        clearTimeout(statusCommitTimerRef.current);
+        statusCommitTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const editingBadgeStatus = useMemo(
+    () => draftStatuses.find((s) => s.id === editingBadgeStatusId) || null,
+    [draftStatuses, editingBadgeStatusId]
+  );
 
   if (!isOpen) return null;
 
-  const handleUpdateBorderPrice = (id: string, price: number) => {
-    void updateStoreBorder(id, { price: Math.max(0, price) });
+  const handleClose = () => {
+    flushPendingCommits();
+    onClose();
+  };
+
+  const handleUpdateBorderPrice = (id: string, price: number, commit = false) => {
+    const cleanPrice = Math.max(0, Number(price) || 0);
+    setBorderPriceDrafts((prev) => ({ ...prev, [id]: cleanPrice }));
+    if (commit) {
+      void updateStoreBorder(id, { price: cleanPrice });
+    }
   };
 
   const handleDeleteBorder = (id: string) => {
@@ -69,6 +128,17 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
     };
     void addStoreBorder(newBorder);
     setNewBorderName('');
+    setNewBorderIcon('🌟');
+  };
+
+  const commitStatusesImmediate = (nextList: CustomStatus[]) => {
+    if (statusCommitTimerRef.current) {
+      clearTimeout(statusCommitTimerRef.current);
+      statusCommitTimerRef.current = null;
+    }
+    draftStatusesRef.current = nextList;
+    setDraftStatuses(nextList);
+    onUpdateStatuses(nextList);
   };
 
   const handleAddStatus = (e: React.FormEvent) => {
@@ -86,25 +156,38 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
       allowMagicAndAccounting: newAllowMagicAndAccounting,
     };
 
-    onUpdateStatuses([...statuses, newStatus]);
+    commitStatusesImmediate([...draftStatusesRef.current, newStatus]);
     setNewName('');
     setNewMultiplier(1.5);
     setNewPrice(250);
     setNewAllowMagicAndAccounting(false);
   };
 
-  const handleUpdate = (id: string, updatedFields: Partial<CustomStatus>) => {
-    onUpdateStatuses(
-      statuses.map((s) => (s.id === id ? { ...s, ...updatedFields } : s))
+  const handleUpdate = (id: string, updatedFields: Partial<CustomStatus>, immediate = false) => {
+    const nextList = draftStatusesRef.current.map((s) =>
+      s.id === id ? { ...s, ...updatedFields } : s
     );
+    if (immediate) {
+      commitStatusesImmediate(nextList);
+      return;
+    }
+    draftStatusesRef.current = nextList;
+    setDraftStatuses(nextList);
+    if (statusCommitTimerRef.current) {
+      clearTimeout(statusCommitTimerRef.current);
+    }
+    statusCommitTimerRef.current = setTimeout(() => {
+      statusCommitTimerRef.current = null;
+      onUpdateStatuses(draftStatusesRef.current);
+    }, 450);
   };
 
   const handleDelete = (id: string) => {
-    if (statuses.length <= 1) {
+    if (draftStatusesRef.current.length <= 1) {
       alert('You must have at least one status in the network.');
       return;
     }
-    onUpdateStatuses(statuses.filter((s) => s.id !== id));
+    commitStatusesImmediate(draftStatusesRef.current.filter((s) => s.id !== id));
   };
 
   return (
@@ -125,7 +208,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
           >
             <X className="w-4 h-4" />
@@ -235,13 +318,13 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   <input
                     type="text"
                     maxLength={3}
-                    value={newBadgeIcon.startsWith('data:image') ? '🖼️' : newBadgeIcon}
+                    value={isImageIcon(newBadgeIcon) ? '🖼️' : newBadgeIcon}
                     onChange={(e) => setNewBadgeIcon(e.target.value)}
                     placeholder="Icon"
                     className="w-12 bg-slate-900 border rounded-lg px-1.5 py-1 text-center text-sm font-bold focus:outline-none theme-border-hover"
                     style={{ borderColor: theme.borderColor, color: theme.textColor }}
                     title="Badge Icon Emoji"
-                    disabled={!!newBadgeIcon && newBadgeIcon.startsWith('data:image')}
+                    disabled={isImageIcon(newBadgeIcon)}
                   />
                   <label className="cursor-pointer">
                     <input
@@ -250,6 +333,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
+                        e.target.value = '';
                         if (file) {
                           try {
                             const resized = await resizeImageToMax(file, 400, 400);
@@ -262,8 +346,9 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                     />
                     <span className="text-[10px] bg-slate-800 px-2 py-1 rounded hover:bg-slate-700 border border-slate-700">Upload Img</span>
                   </label>
-                  {newBadgeIcon.startsWith('data:image') && (
-                    <button 
+                  {isImageIcon(newBadgeIcon) && (
+                    <button
+                      type="button"
                       onClick={() => setNewBadgeIcon('⚡')}
                       className="text-[9px] text-red-400 hover:text-red-300"
                     >
@@ -297,11 +382,11 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
           {/* Existing Statuses List */}
           <div className="space-y-2">
             <span className="font-bold block text-xs uppercase tracking-wider opacity-70" style={{ color: theme.textColor }}>
-              Configured Status Multipliers & Prices ({statuses.length})
+              Configured Status Multipliers & Prices ({draftStatuses.length})
             </span>
 
             <div className="space-y-2">
-              {statuses.map((status) => {
+              {draftStatuses.map((status) => {
                 const count = ponies.filter(
                   (p) => p.status === status.id || p.status === status.name
                 ).length;
@@ -318,7 +403,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                         style={{ backgroundColor: status.color }}
                       />
                       <div className="w-8 h-8 rounded bg-slate-900 border flex items-center justify-center shrink-0 overflow-hidden" style={{ borderColor: theme.borderColor }}>
-                        {status.badgeIcon && status.badgeIcon.startsWith('data:image') ? (
+                        {isImageIcon(status.badgeIcon) ? (
                           <img src={status.badgeIcon} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-sm">{status.badgeIcon || '⭐'}</span>
@@ -326,14 +411,15 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                       </div>
                       <input
                         type="text"
-                        value={status.badgeIcon && status.badgeIcon.startsWith('data:image') ? '🖼️' : status.badgeIcon || '⭐'}
+                        value={isImageIcon(status.badgeIcon) ? '🖼️' : status.badgeIcon || '⭐'}
                         onChange={(e) =>
                           handleUpdate(status.id, { badgeIcon: e.target.value })
                         }
+                        onBlur={flushPendingCommits}
                         className="w-10 bg-slate-900 border rounded text-center text-xs p-1"
                         style={{ borderColor: theme.borderColor, color: theme.textColor }}
                         title="Badge Icon (Emoji or Image URL)"
-                        disabled={!!status.badgeIcon && status.badgeIcon.startsWith('data:image')}
+                        disabled={isImageIcon(status.badgeIcon)}
                       />
                       <label className="cursor-pointer">
                         <input
@@ -342,10 +428,11 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                           className="hidden"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
+                            e.target.value = '';
                             if (file) {
                               try {
                                 const resized = await resizeImageToMax(file, 400, 400);
-                                handleUpdate(status.id, { badgeIcon: resized });
+                                handleUpdate(status.id, { badgeIcon: resized }, true);
                               } catch (err) {
                                 console.error(err);
                               }
@@ -354,9 +441,10 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                         />
                         <span className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded hover:bg-slate-700 border border-slate-700">Img</span>
                       </label>
-                      {status.badgeIcon && status.badgeIcon.startsWith('data:image') && (
-                        <button 
-                          onClick={() => handleUpdate(status.id, { badgeIcon: '⚡' })}
+                      {isImageIcon(status.badgeIcon) && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdate(status.id, { badgeIcon: '⚡' }, true)}
                           className="text-[9px] text-red-400 hover:text-red-300"
                         >
                           ✕
@@ -368,6 +456,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                         onChange={(e) =>
                           handleUpdate(status.id, { name: e.target.value })
                         }
+                        onBlur={flushPendingCommits}
                         className="bg-transparent font-bold border-b border-transparent hover:border-slate-600 focus:outline-none flex-1"
                         style={{ color: theme.textColor }}
                       />
@@ -378,7 +467,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                         <input
                           type="checkbox"
                           checked={!!status.allowMagicAndAccounting}
-                          onChange={(e) => handleUpdate(status.id, { allowMagicAndAccounting: e.target.checked })}
+                          onChange={(e) => handleUpdate(status.id, { allowMagicAndAccounting: e.target.checked }, true)}
                           className="rounded border-slate-700 bg-slate-900 text-pink-500 focus:ring-pink-500 w-3 h-3"
                         />
                         <span>Magic & Accounting View</span>
@@ -397,6 +486,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                               multiplier: Number(e.target.value) || 0,
                             })
                           }
+                          onBlur={flushPendingCommits}
                           className="w-14 bg-slate-900 border rounded px-1 py-0.5 text-center font-bold focus:outline-none"
                           style={{ borderColor: theme.borderColor, color: theme.textColor }}
                         />
@@ -415,6 +505,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                               price: Math.max(0, Number(e.target.value) || 0),
                             })
                           }
+                          onBlur={flushPendingCommits}
                           className="w-16 bg-slate-900 border rounded px-1 py-0.5 text-center font-bold focus:outline-none"
                           style={{ borderColor: theme.borderColor, color: theme.textColor }}
                         />
@@ -429,10 +520,12 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                       </span>
                       
                       <button
+                        type="button"
                         onClick={() => {
-                          alert('Badge page editor for template needs to be implemented. Pass a dummy pony for now or update BadgeSpecialPageModal.');
+                          flushPendingCommits();
+                          setEditingBadgeStatusId(status.id);
                         }}
-                        className="p-1 rounded bg-purple-950/30 hover:bg-purple-900/50 border"
+                        className="p-1 rounded bg-purple-950/30 hover:bg-purple-900/50 border cursor-pointer"
                         style={{ borderColor: theme.borderColor, color: theme.textColor }}
                         title="Edit Badge Page"
                       >
@@ -440,6 +533,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => handleDelete(status.id)}
                         className="p-1 rounded bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-800/40"
                         title="Delete status"
@@ -493,14 +587,37 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block mb-1 opacity-70" style={{ color: theme.textColor }}>Icon (Emoji)</label>
-                    <input
-                      type="text"
-                      value={newBorderIcon}
-                      onChange={(e) => setNewBorderIcon(e.target.value)}
-                      className="w-full bg-slate-900 border rounded-lg px-3 py-1.5 text-center font-bold focus:outline-none"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
-                    />
+                    <label className="block mb-1 opacity-70" style={{ color: theme.textColor }}>Icon (Emoji / Img)</label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={isImageIcon(newBorderIcon) ? '🖼️' : newBorderIcon}
+                        disabled={isImageIcon(newBorderIcon)}
+                        onChange={(e) => setNewBorderIcon(e.target.value)}
+                        className="w-full bg-slate-900 border rounded-lg px-2 py-1.5 text-center font-bold focus:outline-none"
+                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                      />
+                      <label className="cursor-pointer shrink-0">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (file) {
+                              try {
+                                const resized = await resizeImageToMax(file, 400, 400);
+                                setNewBorderIcon(resized);
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }
+                          }}
+                        />
+                        <span className="text-[10px] bg-slate-800 px-2 py-1 rounded hover:bg-slate-700 border border-slate-700">Img</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -533,7 +650,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                 </span>
 
                 <div className="space-y-2">
-                  {storeBorders.map((b: any) => (
+                  {storeBorders.map((b) => (
                     <div
                       key={b.id}
                       className="flex items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-xl border text-xs theme-border-hover"
@@ -541,10 +658,14 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <span 
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-base border-2 font-bold shrink-0"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-base border-2 font-bold shrink-0 overflow-hidden"
                           style={{ borderColor: b.borderColor, backgroundColor: `${b.borderColor}20` }}
                         >
-                          {b.icon}
+                          {isImageIcon(b.icon) ? (
+                            <img src={b.icon} alt={b.name} className="w-full h-full object-cover" />
+                          ) : (
+                            b.icon
+                          )}
                         </span>
                         <div className="min-w-0">
                           <strong className="block text-xs truncate" style={{ color: theme.textColor }}>{b.name}</strong>
@@ -559,8 +680,9 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                             type="number"
                             step="50"
                             min="0"
-                            value={b.price}
-                            onChange={(e) => handleUpdateBorderPrice(b.id, Number(e.target.value))}
+                            value={borderPriceDrafts[b.id] ?? b.price}
+                            onChange={(e) => handleUpdateBorderPrice(b.id, Number(e.target.value), false)}
+                            onBlur={(e) => handleUpdateBorderPrice(b.id, Number(e.target.value), true)}
                             className="w-20 bg-slate-900 border rounded px-1.5 py-0.5 text-center font-bold focus:outline-none text-xs"
                             style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
                           />
@@ -590,7 +712,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
           style={{ borderColor: theme.borderColor }}
         >
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-5 py-2 rounded-xl font-bold text-xs border cursor-pointer theme-border-hover"
             style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
           >
@@ -598,6 +720,21 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Template Badge Special Page Editor Modal */}
+      <BadgeSpecialPageModal
+        isOpen={!!editingBadgeStatus}
+        onClose={() => setEditingBadgeStatusId(null)}
+        status={editingBadgeStatus}
+        pony={null}
+        isAdmin={true}
+        initialEditing={true}
+        onUpdateStatus={(updated) => {
+          commitStatusesImmediate(
+            draftStatusesRef.current.map((s) => (s.id === updated.id ? updated : s))
+          );
+        }}
+      />
     </div>
   );
 };

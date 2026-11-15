@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { CustomStatus, PonyNode } from '../types/pony';
 import { X, Check, Lock, AlertCircle, Sparkles, Shield, Palette, Plus, Eye } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 import { BadgeSpecialPageModal } from './BadgeSpecialPageModal';
 import { resizeImageToMax } from '../utils/imageUtils';
-import { calculatePonyAccumulatedLove } from '../utils/calculations';
+import { calculatePonyAccumulatedLove, getSortedStatuses } from '../utils/calculations';
 
 export type StoreBorderItem = {
   id: string;
@@ -55,6 +56,7 @@ interface StatusStoreModalProps {
   pony: PonyNode;
   statuses: CustomStatus[];
   onUpdatePony: (updated: PonyNode) => void;
+  onUpdateStatus?: (updated: CustomStatus) => void;
   isPonyOwner: boolean;
   isAdmin: boolean;
   targetDate?: string;
@@ -67,12 +69,14 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
   pony,
   statuses,
   onUpdatePony,
+  onUpdateStatus,
   isPonyOwner,
   isAdmin,
   targetDate,
   onAddToReservoir,
 }) => {
   const { theme, storeBorders, addStoreBorder, unlockStoreItems } = useSettings();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'ranks' | 'borders' | 'perks'>('ranks');
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
@@ -84,8 +88,10 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
   const [newBorderColor, setNewBorderColor] = useState('#ec4899');
 
   const [selectedBorderForPreview, setSelectedBorderForPreview] = useState<StoreBorderItem | null>(null);
-  const [selectedBadgeForPage, setSelectedBadgeForPage] = useState<CustomStatus | null>(null);
+  const [selectedBadgeForPageId, setSelectedBadgeForPageId] = useState<string | null>(null);
   const [confirmingPurchase, setConfirmingPurchase] = useState<{ type: 'status' | 'border' | 'perk', item: any } | null>(null);
+
+  const selectedBadgeForPage = statuses.find((s) => s.id === selectedBadgeForPageId) || null;
 
   if (!isOpen) return null;
 
@@ -98,11 +104,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
   const currentLove = pony.currentLoveTotal !== undefined ? pony.currentLoveTotal : Math.max(0, totalOverall - spent);
 
   // Sort statuses
-  const sortedStatuses = [...statuses].sort((a, b) => {
-    const priceDiff = (a.price || 0) - (b.price || 0);
-    if (priceDiff !== 0) return priceDiff;
-    return (a.multiplier || 0) - (b.multiplier || 0);
-  });
+  const sortedStatuses = getSortedStatuses(statuses);
 
   const isOwnedStatus = (s: CustomStatus) => {
     const badges = pony.purchasedBadges || [];
@@ -424,7 +426,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                       className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 border font-bold overflow-hidden"
                       style={{ backgroundColor: `${s.color}25`, borderColor: `${s.color}60` }}
                     >
-                      {s.badgeIcon && s.badgeIcon.startsWith('data:image') ? (
+                      {s.badgeIcon && (s.badgeIcon.startsWith('data:image') || s.badgeIcon.startsWith('http')) ? (
                         <img src={s.badgeIcon} alt="" className="w-full h-full object-cover" />
                       ) : (
                         s.badgeIcon || '⭐'
@@ -439,6 +441,21 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {Boolean(user) && isPonyOwner && owned && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBadgeForPageId(s.id)}
+                        className={`relative p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border transition-all cursor-pointer ${
+                          !isAcceptedStatus(s) ? 'ring-1 ring-amber-400/70' : ''
+                        }`}
+                        style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        {!isAcceptedStatus(s) && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-slate-950" />
+                        )}
+                      </button>
+                    )}
 
                     {isCurrent ? (
                       <span className="px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold flex items-center gap-1">
@@ -589,10 +606,14 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                     onClick={() => setSelectedBorderForPreview(b)}
                   >
                     <div
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border-2 font-bold shadow-lg transition-transform ${selectedBorderForPreview?.id === b.id ? 'scale-110 ring-2 ring-white/20' : 'group-hover:scale-105'}`}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border-2 font-bold shadow-lg overflow-hidden transition-transform ${selectedBorderForPreview?.id === b.id ? 'scale-110 ring-2 ring-white/20' : 'group-hover:scale-105'}`}
                       style={{ borderColor: theme.borderColor, backgroundColor: `${theme.borderColor}20` }}
                     >
-                      {b.icon}
+                      {b.icon && (b.icon.startsWith('data:image') || b.icon.startsWith('http')) ? (
+                        <img src={b.icon} alt={b.name} className="w-full h-full object-cover" />
+                      ) : (
+                        b.icon
+                      )}
                     </div>
                     <div className="min-w-0">
                       <strong className="text-xs block truncate leading-tight" style={{ color: theme.textColor }}>{b.name}</strong>
@@ -740,13 +761,16 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
       {/* Standalone Badge Special Page Modal */}
       <BadgeSpecialPageModal
         isOpen={!!selectedBadgeForPage}
-        onClose={() => setSelectedBadgeForPage(null)}
+        onClose={() => setSelectedBadgeForPageId(null)}
         status={selectedBadgeForPage}
+        statuses={statuses}
         pony={pony}
+        isPonyOwner={isPonyOwner}
         isAdmin={isAdmin}
-        onUpdatePony={onUpdatePony}
+        onUpdateStatus={onUpdateStatus}
+        onUpdatePony={isPonyOwner ? onUpdatePony : undefined}
         onAccessDenied={() => {
-          setSelectedBadgeForPage(null);
+          setSelectedBadgeForPageId(null);
           setPurchaseError('Access Denied: You do not have permission to view this badge.');
           setTimeout(() => setPurchaseError(null), 6000);
         }}

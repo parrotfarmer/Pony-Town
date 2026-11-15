@@ -21,7 +21,8 @@ import {
   PONY_SORT_OPTIONS,
   PonySortKey,
   hasMagicAndAccountingAccess,
-  getUserMainPony
+  getUserMainPony,
+  getSortedStatuses
 } from './utils/calculations';
 import { resizeImageToMax } from './utils/imageUtils';
 import { Navbar } from './components/Navbar';
@@ -55,6 +56,16 @@ const STORAGE_KEY_TARGET_DATE = 'pony_network_target_date_v5';
 const STORAGE_KEY_SCOPE = 'pony_network_scope_v5';
 const STORAGE_KEY_LAYOUT_LOCK = 'pony_network_layout_locked_v5';
 const STORAGE_KEY_DEDUCTIONS = 'pony_network_reservoir_deductions_v5';
+
+interface SecretBadgePageData {
+  badgeRows?: CustomStatus['badgeRows'];
+  specialPageContent?: string;
+}
+
+function stripBadgePageFields(status: CustomStatus): CustomStatus {
+  const { badgeRows: _br, specialPageContent: _sp, ...publicStatus } = status;
+  return publicStatus;
+}
 
 function reconcilePonyForToday(pony: PonyNode, todayStr: string, statuses: CustomStatus[]): PonyNode {
   if (!pony.lastAccruedDate || pony.lastAccruedDate >= todayStr) {
@@ -115,12 +126,14 @@ export default function App() {
   const [statuses, setStatuses] = useState<CustomStatus[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_STATUSES);
-      if (saved) return JSON.parse(saved);
+      if (saved) return (JSON.parse(saved) as CustomStatus[]).map(stripBadgePageFields);
     } catch (e) {
       console.warn(e);
     }
-    return DEFAULT_STATUSES;
+    return DEFAULT_STATUSES.map(stripBadgePageFields);
   });
+  const [badgePagesMap, setBadgePagesMap] = useState<Record<string, SecretBadgePageData>>({});
+  const [legacyBadgePagesMap, setLegacyBadgePagesMap] = useState<Record<string, SecretBadgePageData>>({});
 
   const [headers, setHeaders] = useState<EditableHeaders>(() => {
     try {
@@ -277,6 +290,7 @@ export default function App() {
   const didMigrateLocalPoniesRef = useRef(false);
   const didMigrateLocalConnsRef = useRef(false);
   const didSeedStatusesRef = useRef(false);
+  const didMigrateLegacyBadgePagesRef = useRef(false);
   const didSeedNetworkStateRef = useRef(false);
   const [isFirestorePoniesReady, setIsFirestorePoniesReady] = useState(false);
   const [isFirestoreConnsReady, setIsFirestoreConnsReady] = useState(false);
@@ -387,7 +401,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY_STATUSES, JSON.stringify(statuses));
+      localStorage.setItem(STORAGE_KEY_STATUSES, JSON.stringify(statuses.map(stripBadgePageFields)));
     } catch (e) {}
   }, [statuses]);
 
@@ -613,6 +627,8 @@ export default function App() {
       setStoreModalPonyId(null);
       setIsThemeSettingsOpen(false);
       setIsRankingsModalOpen(false);
+      setBadgePagesMap({});
+      setLegacyBadgePagesMap({});
       try {
         localStorage.removeItem('pony_network_onboarding_completed');
       } catch {}
@@ -756,17 +772,69 @@ export default function App() {
             const batch = writeBatch(db);
             seedList.forEach((s) => {
               const safeId = sanitizeFirestoreId(s.id, 'status');
-              batch.set(doc(db, 'statuses', safeId), stripUndefined({ ...s, id: safeId }));
+              const matchingDefault = DEFAULT_STATUSES.find((d) => d.id === safeId || d.id === s.id);
+              const badgeRows = s.badgeRows ?? matchingDefault?.badgeRows ?? [];
+              const specialPageContent = s.specialPageContent ?? matchingDefault?.specialPageContent;
+              batch.set(doc(db, 'statuses', safeId), stripUndefined({ ...stripBadgePageFields(s), id: safeId }));
+              batch.set(
+                doc(db, 'badgePages', safeId),
+                stripUndefined({
+                  id: safeId,
+                  badgeRows,
+                  ...(specialPageContent ? { specialPageContent } : {}),
+                  updatedAt: new Date().toISOString(),
+                })
+              );
             });
             batch.commit().catch(() => {});
           }
           return;
         }
         didSeedStatusesRef.current = true;
+        const legacyExtracted: Record<string, SecretBadgePageData> = {};
+        const legacyToMigrate: CustomStatus[] = [];
         const loaded = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() } as CustomStatus))
+          .map((d) => {
+            const raw = { id: d.id, ...d.data() } as CustomStatus;
+            const { badgeRows, specialPageContent } = raw;
+            if ((badgeRows && badgeRows.length > 0) || specialPageContent) {
+              legacyExtracted[d.id] = {
+                ...(badgeRows ? { badgeRows } : {}),
+                ...(specialPageContent ? { specialPageContent } : {}),
+              };
+              legacyToMigrate.push(raw);
+            }
+            return stripBadgePageFields(raw);
+          })
           .sort((a, b) => (a.price || 0) - (b.price || 0) || (a.multiplier || 0) - (b.multiplier || 0));
         setStatuses(loaded);
+
+        if (user) {
+          setLegacyBadgePagesMap(legacyExtracted);
+        } else {
+          setLegacyBadgePagesMap({});
+        }
+
+        if (authIsAdmin && legacyToMigrate.length > 0 && !didMigrateLegacyBadgePagesRef.current) {
+          didMigrateLegacyBadgePagesRef.current = true;
+          const batch = writeBatch(db);
+          const nowIso = new Date().toISOString();
+          legacyToMigrate.forEach((raw) => {
+            const safeId = sanitizeFirestoreId(raw.id, 'status');
+            batch.set(
+              doc(db, 'badgePages', safeId),
+              stripUndefined({
+                id: safeId,
+                badgeRows: raw.badgeRows || [],
+                ...(raw.specialPageContent ? { specialPageContent: raw.specialPageContent } : {}),
+                updatedAt: nowIso,
+              }),
+              { merge: true }
+            );
+            batch.set(doc(db, 'statuses', safeId), stripUndefined({ ...stripBadgePageFields(raw), id: safeId }));
+          });
+          batch.commit().catch(() => {});
+        }
       },
       (err) => {
         handleFirestoreError(err, OperationType.GET, 'statuses');
@@ -832,6 +900,136 @@ export default function App() {
     };
   }, [user, authIsAdmin, todayStr]);
 
+  // Compute badge status IDs owned/unlocked by the signed-in user's personal ponies
+  const ownedBadgeStatusIds = useMemo(() => {
+    const owned = new Set<string>();
+    if (!user) return owned;
+    const sorted = getSortedStatuses(statuses);
+    const userPonies = ponies.filter((p) => p.ownerId === user.uid);
+    userPonies.forEach((p) => {
+      const purchased = p.purchasedBadges || [];
+      const acceptedSet = new Set(p.acceptedBadges || []);
+      const firstUnacceptedIdx = sorted.findIndex((s) => !acceptedSet.has(s.id));
+      const frontierIdx = firstUnacceptedIdx === -1 ? sorted.length - 1 : firstUnacceptedIdx;
+      sorted.forEach((s, idx) => {
+        const explicitlyOwned =
+          purchased.includes(s.id) ||
+          (s.badgeIcon ? purchased.includes(s.badgeIcon) : false) ||
+          p.status === s.id ||
+          p.status === s.name ||
+          !s.price ||
+          s.price === 0;
+        const unlockedWithoutStore =
+          !adminSettings.allowExchangeStore &&
+          (idx <= frontierIdx || (idx > 0 && acceptedSet.has(sorted[idx - 1].id)));
+        if (explicitlyOwned || unlockedWithoutStore) {
+          owned.add(s.id);
+        }
+      });
+    });
+    return owned;
+  }, [user, ponies, statuses, adminSettings.allowExchangeStore]);
+
+  const ownedBadgeIdsKey = useMemo(
+    () => Array.from(ownedBadgeStatusIds).sort().join('|'),
+    [ownedBadgeStatusIds]
+  );
+
+  // Scoped Firestore subscription for private /badgePages documents:
+  // - Signed-out: never reads badgePages and keeps map empty
+  // - Admin: subscribes to badgePages for template management
+  // - Signed-in owner: subscribes ONLY to badgePages documents for badges owned by their own ponies
+  useEffect(() => {
+    if (!user || !db) {
+      setBadgePagesMap({});
+      setLegacyBadgePagesMap({});
+      return;
+    }
+
+    if (isAdmin) {
+      const unsubAllPages = onSnapshot(
+        collection(db, 'badgePages'),
+        (snap) => {
+          const nextMap: Record<string, SecretBadgePageData> = {};
+          snap.docs.forEach((d) => {
+            const data = d.data() as SecretBadgePageData;
+            nextMap[d.id] = {
+              ...(data.badgeRows ? { badgeRows: data.badgeRows } : {}),
+              ...(data.specialPageContent ? { specialPageContent: data.specialPageContent } : {}),
+            };
+          });
+          setBadgePagesMap(nextMap);
+        },
+        (err) => {
+          handleFirestoreError(err, OperationType.GET, 'badgePages');
+        }
+      );
+      return () => unsubAllPages();
+    }
+
+    const ids = ownedBadgeIdsKey ? ownedBadgeIdsKey.split('|') : [];
+    if (ids.length === 0) {
+      setBadgePagesMap({});
+      return;
+    }
+
+    const unsubs = ids.map((statusId) => {
+      const safeId = sanitizeFirestoreId(statusId, 'status');
+      return onSnapshot(
+        doc(db, 'badgePages', safeId),
+        (snap) => {
+          setBadgePagesMap((prev) => {
+            const next = { ...prev };
+            if (snap.exists()) {
+              const data = snap.data() as SecretBadgePageData;
+              next[statusId] = {
+                ...(data.badgeRows ? { badgeRows: data.badgeRows } : {}),
+                ...(data.specialPageContent ? { specialPageContent: data.specialPageContent } : {}),
+              };
+            } else {
+              delete next[statusId];
+            }
+            return next;
+          });
+        },
+        (err) => {
+          handleFirestoreError(err, OperationType.GET, `badgePages/${safeId}`);
+        }
+      );
+    });
+
+    setBadgePagesMap((prev) => {
+      const allowed = new Set(ids);
+      const next: Record<string, SecretBadgePageData> = {};
+      Object.keys(prev).forEach((k) => {
+        if (allowed.has(k)) next[k] = prev[k];
+      });
+      return next;
+    });
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+    };
+  }, [user, isAdmin, ownedBadgeIdsKey]);
+
+  const statusesWithBadgePages = useMemo(() => {
+    if (!user) {
+      return statuses.map(stripBadgePageFields);
+    }
+    return statuses.map((s) => {
+      const canMerge = isAdmin || ownedBadgeStatusIds.has(s.id);
+      if (!canMerge) return stripBadgePageFields(s);
+      const safeId = sanitizeFirestoreId(s.id, 'status');
+      const secret = badgePagesMap[s.id] || badgePagesMap[safeId] || legacyBadgePagesMap[s.id] || legacyBadgePagesMap[safeId];
+      if (!secret) return stripBadgePageFields(s);
+      return {
+        ...s,
+        ...(secret.badgeRows ? { badgeRows: secret.badgeRows } : {}),
+        ...(secret.specialPageContent ? { specialPageContent: secret.specialPageContent } : {}),
+      };
+    });
+  }, [user, isAdmin, statuses, badgePagesMap, legacyBadgePagesMap, ownedBadgeStatusIds]);
+
   // Pony Handlers - moving one pony moves only that pony (Firebase Auth required)
   const handleUpdatePony = useCallback((updatedPony: PonyNode) => {
     if (!user || !db) {
@@ -887,19 +1085,49 @@ export default function App() {
   const handleUpdateStatuses = useCallback((nextStatuses: CustomStatus[]) => {
     if (!user || !authIsAdmin || !db) return;
     const prevIds = new Set(latestStatusesRef.current.map((s) => s.id));
-    setStatuses(nextStatuses);
+    setStatuses(nextStatuses.map(stripBadgePageFields));
+    setBadgePagesMap((prev) => {
+      const nextMap: Record<string, SecretBadgePageData> = {};
+      nextStatuses.forEach((s) => {
+        const safeId = sanitizeFirestoreId(s.id, 'status');
+        const existing = prev[s.id] || prev[safeId];
+        if (s.badgeRows !== undefined || s.specialPageContent !== undefined) {
+          nextMap[safeId] = {
+            ...(s.badgeRows !== undefined ? { badgeRows: s.badgeRows } : {}),
+            ...(s.specialPageContent !== undefined ? { specialPageContent: s.specialPageContent } : {}),
+          };
+        } else if (existing) {
+          nextMap[safeId] = existing;
+        }
+      });
+      return nextMap;
+    });
 
     const batch = writeBatch(db);
     const nextIds = new Set<string>();
+    const nowIso = new Date().toISOString();
     nextStatuses.forEach((s) => {
       const safeId = sanitizeFirestoreId(s.id, 'status');
       nextIds.add(safeId);
-      batch.set(doc(db, 'statuses', safeId), stripUndefined({ ...s, id: safeId }));
+      batch.set(doc(db, 'statuses', safeId), stripUndefined({ ...stripBadgePageFields(s), id: safeId }));
+      if (s.badgeRows !== undefined || s.specialPageContent !== undefined) {
+        batch.set(
+          doc(db, 'badgePages', safeId),
+          stripUndefined({
+            id: safeId,
+            badgeRows: s.badgeRows || [],
+            ...(s.specialPageContent ? { specialPageContent: s.specialPageContent } : {}),
+            updatedAt: nowIso,
+          }),
+          { merge: true }
+        );
+      }
     });
     prevIds.forEach((oldId) => {
       const safeOldId = sanitizeFirestoreId(oldId, 'status');
       if (!nextIds.has(safeOldId)) {
         batch.delete(doc(db, 'statuses', safeOldId));
+        batch.delete(doc(db, 'badgePages', safeOldId));
       }
     });
     batch.commit().catch((err) => handleFirestoreError(err, OperationType.WRITE, 'statuses'));
@@ -1278,7 +1506,7 @@ export default function App() {
     if (!user || !authIsAdmin || !db) return;
     setPonies(INITIAL_PONIES);
     setConnections(INITIAL_CONNECTIONS);
-    setStatuses(DEFAULT_STATUSES);
+    setStatuses(DEFAULT_STATUSES.map(stripBadgePageFields));
     setArchivedLove(0);
     setReservoirDeductions(0);
     try {
@@ -1291,17 +1519,28 @@ export default function App() {
     didSeedStatusesRef.current = true;
 
     try {
-      const [poniesSnap, connsSnap, statusesSnap] = await Promise.all([
+      const [poniesSnap, connsSnap, statusesSnap, badgePagesSnap] = await Promise.all([
         getDocs(collection(db, 'ponies')),
         getDocs(collection(db, 'connections')),
         getDocs(collection(db, 'statuses')),
+        getDocs(collection(db, 'badgePages')),
       ]);
       const batch = writeBatch(db);
       poniesSnap.docs.forEach((d) => batch.delete(d.ref));
       connsSnap.docs.forEach((d) => batch.delete(d.ref));
       statusesSnap.docs.forEach((d) => batch.delete(d.ref));
+      badgePagesSnap.docs.forEach((d) => batch.delete(d.ref));
       DEFAULT_STATUSES.forEach((s) => {
-        batch.set(doc(db, 'statuses', s.id), stripUndefined(s));
+        batch.set(doc(db, 'statuses', s.id), stripUndefined(stripBadgePageFields(s)));
+        batch.set(
+          doc(db, 'badgePages', s.id),
+          stripUndefined({
+            id: s.id,
+            badgeRows: s.badgeRows || [],
+            ...(s.specialPageContent ? { specialPageContent: s.specialPageContent } : {}),
+            updatedAt: new Date().toISOString(),
+          })
+        );
       });
       batch.set(
         doc(db, 'networkState', 'global'),
@@ -1327,7 +1566,7 @@ export default function App() {
       exportedAt: new Date().toISOString(),
       ponies,
       connections,
-      statuses,
+      statuses: statusesWithBadgePages,
       headers,
       loveToPowerRatio,
       targetDate,
@@ -1700,6 +1939,7 @@ export default function App() {
                                 className="hidden" 
                                 onChange={async (e) => {
                                   const file = e.target.files?.[0];
+                                  e.target.value = '';
                                   if (!file) return;
                                   try {
                                     const resized = await resizeImageToMax(file, 400, 400);
@@ -2012,7 +2252,7 @@ export default function App() {
           onDeleteConnection={handleDeleteConnection}
           onUpdateConnection={handleUpdateConnection}
           targetDate={targetDate}
-          statuses={statuses}
+          statuses={statusesWithBadgePages}
           onUpdateStatuses={handleUpdateStatuses}
           isAdmin={isAdmin}
           isSimulatingNonAdmin={isSimulatingNonAdmin}
@@ -2082,7 +2322,7 @@ export default function App() {
           <StatusManagerModal
             isOpen={isStatusManagerOpen && isAdmin}
             onClose={() => setIsStatusManagerOpen(false)}
-            statuses={statuses}
+            statuses={statusesWithBadgePages}
             onUpdateStatuses={handleUpdateStatuses}
             ponies={ponies}
           />
@@ -2161,8 +2401,14 @@ export default function App() {
             isOpen={isStoreModalOpen && adminSettings.allowExchangeStore}
             onClose={() => setIsStoreModalOpen(false)}
             pony={storeModalPony}
-            statuses={statuses}
+            statuses={statusesWithBadgePages}
             onUpdatePony={handleUpdatePony}
+            onUpdateStatus={
+              isAdmin
+                ? (updated) =>
+                    handleUpdateStatuses(statusesWithBadgePages.map((s) => (s.id === updated.id ? updated : s)))
+                : undefined
+            }
             isPonyOwner={true}
             isAdmin={isAdmin}
             targetDate={targetDate}

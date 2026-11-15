@@ -792,7 +792,11 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
                         boxShadow: isEquipped ? `0 0 0 1px ${theme.borderHoverColor || theme.buttonColor || '#ec4899'}` : undefined,
                       }}
                     >
-                      <span className="text-base shrink-0">{b.icon}</span>
+                      {b.icon && (b.icon.startsWith('data:image') || b.icon.startsWith('http')) ? (
+                        <img src={b.icon} alt={b.name} className="w-5 h-5 rounded object-cover shrink-0" />
+                      ) : (
+                        <span className="text-base shrink-0">{b.icon}</span>
+                      )}
                       <span className="text-[11px] font-bold truncate flex-1" style={{ color: theme.textColor }}>
                         {b.name}
                       </span>

@@ -9,7 +9,8 @@ import {
   generateHarvestTimeline,
   formatLoveNumber,
   hasMagicAndAccountingAccess,
-  getUserMainPony
+  getUserMainPony,
+  getSortedStatuses
 } from '../utils/calculations';
 import { 
   X, 
@@ -122,7 +123,11 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
   // Badge Special Page Modal & Status Store Modal states
   const [isStoreOpen, setIsStoreOpen] = useState(false);
-  const [selectedBadgeStatus, setSelectedBadgeStatus] = useState<CustomStatus | null>(null);
+  const [selectedBadgeStatusId, setSelectedBadgeStatusId] = useState<string | null>(null);
+  const selectedBadgeStatus = useMemo(
+    () => statuses.find((s) => s.id === selectedBadgeStatusId) || null,
+    [statuses, selectedBadgeStatusId]
+  );
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [isConnectedPoniesModalOpen, setIsConnectedPoniesModalOpen] = useState(false);
   const [isOwnedPoniesModalOpen, setIsOwnedPoniesModalOpen] = useState(false);
@@ -158,17 +163,30 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
   const [profileDraft, setProfileDraft] = useState(() => buildDraftFromPony(pony));
   const syncedPonyIdRef = useRef<string>(pony.id);
+  const lastSyncedBaseRef = useRef(buildDraftFromPony(pony));
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   useEffect(() => {
+    const nextBase = buildDraftFromPony(pony);
     if (syncedPonyIdRef.current !== pony.id) {
       syncedPonyIdRef.current = pony.id;
-      setProfileDraft(buildDraftFromPony(pony));
+      lastSyncedBaseRef.current = nextBase;
+      setProfileDraft(nextBase);
       setProfileNotice(null);
       setIsEditingAvatarIcon(false);
+      return;
     }
-  }, [pony]);
+
+    const prevBase = lastSyncedBaseRef.current;
+    const hasLocalUnsavedEdits = (Object.keys(prevBase) as Array<keyof typeof prevBase>).some(
+      (k) => (profileDraft[k] || '') !== (prevBase[k] || '')
+    );
+    lastSyncedBaseRef.current = nextBase;
+    if (!hasLocalUnsavedEdits) {
+      setProfileDraft(nextBase);
+    }
+  }, [pony, profileDraft]);
 
   useEffect(() => {
     if (!adminSettings.allowAvatarImageUpload && cropperRawImage) {
@@ -310,13 +328,15 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
       return;
     }
     const nextTimestamp = !isAdmin && isPonyOwner ? new Date().toISOString() : pony.lastProfileUpdateAt;
-    onUpdatePony({
+    const updatedPony: PonyNode = {
       ...pony,
       ...profileDraft,
       name: (profileDraft.name || '').trim() || pony.name,
       avatarIcon: (profileDraft.avatarIcon || '').trim() || pony.avatarIcon || '🦄',
       lastProfileUpdateAt: nextTimestamp,
-    });
+    };
+    lastSyncedBaseRef.current = buildDraftFromPony(updatedPony);
+    onUpdatePony(updatedPony);
     setNowMs(Date.now());
     setProfileNotice('Profile saved!');
     if (closeAfter) {
@@ -459,33 +479,62 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     if (onUpdateStatuses) {
       onUpdateStatuses(statuses.map((s) => (s.id === updated.id ? updated : s)));
     }
-    setSelectedBadgeStatus(updated);
   };
 
-  // Purchased badge statuses (or active status badge if no purchases yet)
+  // Badges accessible on the profile:
+  // - When Love Exchange is OFF: treat all ranks as owned & unlock sequentially 1-by-1 as each badge is accepted.
+  // - When Love Exchange is ON: only purchased/awarded/active (or free when active) badges are shown.
   const purchasedBadgeStatuses = useMemo(() => {
+    const sortedStatuses = getSortedStatuses(statuses);
     const list: CustomStatus[] = [];
     const seen = new Set<string>();
     const purchased = pony.purchasedBadges || [];
-    statuses.forEach((s) => {
-      const isPurchased = purchased.includes(s.id) || (s.badgeIcon && purchased.includes(s.badgeIcon));
-      if (isPurchased && !seen.has(s.id)) {
+    const acceptedSet = new Set(pony.acceptedBadges || []);
+    const firstUnacceptedIndex = sortedStatuses.findIndex((s) => !acceptedSet.has(s.id));
+    const frontierIndex = firstUnacceptedIndex === -1 ? sortedStatuses.length - 1 : firstUnacceptedIndex;
+
+    sortedStatuses.forEach((s, idx) => {
+      const isPurchased =
+        purchased.includes(s.id) ||
+        (s.badgeIcon ? purchased.includes(s.badgeIcon) : false) ||
+        pony.status === s.id ||
+        pony.status === s.name;
+
+      const isUnlockedWithoutStore =
+        !adminSettings.allowExchangeStore &&
+        (idx <= frontierIndex || (idx > 0 && acceptedSet.has(sortedStatuses[idx - 1].id)));
+
+      if ((isPurchased || isUnlockedWithoutStore) && !seen.has(s.id)) {
         seen.add(s.id);
         list.push(s);
       }
     });
-    // If no purchased badges yet, fallback to active status
+
+    // Fallback to active status if nothing matched
     if (list.length === 0) {
-      const active = statuses.find(s => s.id === pony.status || s.name === pony.status);
+      const active = sortedStatuses.find((s) => s.id === pony.status || s.name === pony.status) || sortedStatuses[0];
       if (active) list.push(active);
     }
     return list;
-  }, [statuses, pony.purchasedBadges, pony.status]);
+  }, [statuses, pony.purchasedBadges, pony.acceptedBadges, pony.status, adminSettings.allowExchangeStore]);
+
+  const mostRecentBadge = useMemo(
+    () => (purchasedBadgeStatuses.length > 0 ? purchasedBadgeStatuses[purchasedBadgeStatuses.length - 1] : null),
+    [purchasedBadgeStatuses]
+  );
 
   const canPressBadge = (bStatus: CustomStatus) => {
-    if (isPonyOwner || isAdmin) return true;
+    if (!user || !isPonyOwner) return false;
+    if (!adminSettings.allowExchangeStore) return true;
     const purchased = pony.purchasedBadges || [];
-    return purchased.includes(bStatus.id) || (bStatus.badgeIcon && purchased.includes(bStatus.badgeIcon));
+    return Boolean(
+      purchased.includes(bStatus.id) ||
+      (bStatus.badgeIcon && purchased.includes(bStatus.badgeIcon)) ||
+      pony.status === bStatus.id ||
+      pony.status === bStatus.name ||
+      !bStatus.price ||
+      bStatus.price === 0
+    );
   };
 
   const ponyIdSet = useMemo(() => new Set(allPonies.map((p) => p.id)), [allPonies]);
@@ -638,6 +687,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
   const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     try {
       // Resize image to max 400x400 before loading into cropper
@@ -674,56 +724,115 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
           style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor }}
         >
           <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
-            <div
-              className={`relative group/icon ${canEditProfileFields && !adminSettings.allowAvatarImageUpload ? 'cursor-pointer' : ''}`}
-              onClick={() => {
-                if (canEditProfileFields && !adminSettings.allowAvatarImageUpload && !isEditingAvatarIcon) {
-                  setIsEditingAvatarIcon(true);
+            <div className="flex items-center gap-3 shrink-0">
+              <div
+                className={`relative group/icon ${canEditProfileFields ? 'cursor-pointer' : ''}`}
+                onClick={() => {
+                  if (canEditProfileFields && !adminSettings.allowAvatarImageUpload && !isEditingAvatarIcon) {
+                    setIsEditingAvatarIcon(true);
+                  }
+                }}
+                title={
+                  canEditProfileFields
+                    ? adminSettings.allowAvatarImageUpload
+                      ? 'Click to upload custom avatar image'
+                      : 'Click to edit emoticon'
+                    : undefined
                 }
-              }}
-              title={canEditProfileFields && !adminSettings.allowAvatarImageUpload ? 'Click to edit emoticon' : undefined}
-            >
-              {canEditProfileFields && !adminSettings.allowAvatarImageUpload && isEditingAvatarIcon ? (
-                <input
-                  type="text"
-                  autoFocus
-                  maxLength={24}
-                  value={profileDraft.avatarIcon.startsWith('data:image') ? '' : profileDraft.avatarIcon}
-                  onChange={(e) => setProfileDraft((prev) => ({ ...prev, avatarIcon: e.target.value }))}
-                  onBlur={() => {
-                    setIsEditingAvatarIcon(false);
-                    if (!profileDraft.avatarIcon.trim()) {
-                      setProfileDraft((prev) => ({ ...prev, avatarIcon: pony.avatarIcon || '🦄' }));
+              >
+                {canEditProfileFields && isEditingAvatarIcon ? (
+                  <input
+                    type="text"
+                    autoFocus
+                    maxLength={24}
+                    value={
+                      profileDraft.avatarIcon.startsWith('data:image') || profileDraft.avatarIcon.startsWith('http')
+                        ? ''
+                        : profileDraft.avatarIcon
                     }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.currentTarget.blur();
-                    } else if (e.key === 'Escape') {
-                      setProfileDraft((prev) => ({ ...prev, avatarIcon: pony.avatarIcon || '🦄' }));
+                    onChange={(e) => setProfileDraft((prev) => ({ ...prev, avatarIcon: e.target.value }))}
+                    onBlur={() => {
                       setIsEditingAvatarIcon(false);
-                    }
-                  }}
-                  placeholder="🦄"
-                  className="w-14 h-14 rounded-2xl bg-slate-900 border-2 text-center text-base font-bold focus:outline-none shadow-sm"
-                  style={{ borderColor: theme.borderHoverColor || theme.borderColor, color: theme.textColor }}
-                  aria-label="Edit profile emoticon"
-                />
-              ) : (
-                <PonyAvatar
-                  pony={{ ...pony, avatarIcon: profileDraft.avatarIcon || pony.avatarIcon }}
-                  theme={theme}
-                  size="xl"
-                  showBorder={true}
-                  className={`ring-4 ${canEditProfileFields && !adminSettings.allowAvatarImageUpload ? 'transition-transform group-hover/icon:scale-105' : ''}`}
-                />
-              )}
-              
+                      if (!profileDraft.avatarIcon.trim()) {
+                        setProfileDraft((prev) => ({ ...prev, avatarIcon: pony.avatarIcon || '🦄' }));
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      } else if (e.key === 'Escape') {
+                        setProfileDraft((prev) => ({ ...prev, avatarIcon: pony.avatarIcon || '🦄' }));
+                        setIsEditingAvatarIcon(false);
+                      }
+                    }}
+                    placeholder="🦄"
+                    className="w-14 h-14 rounded-2xl bg-slate-900 border-2 text-center text-base font-bold focus:outline-none shadow-sm"
+                    style={{ borderColor: theme.borderHoverColor || theme.borderColor, color: theme.textColor }}
+                    aria-label="Edit profile emoticon"
+                  />
+                ) : (
+                  <PonyAvatar
+                    pony={{ ...pony, avatarIcon: profileDraft.avatarIcon || pony.avatarIcon }}
+                    theme={theme}
+                    size="xl"
+                    showBorder={true}
+                    className={`ring-4 ${canEditProfileFields ? 'transition-transform group-hover/icon:scale-105' : ''}`}
+                  />
+                )}
+
+                {canEditProfileFields && adminSettings.allowAvatarImageUpload && !isEditingAvatarIcon && (
+                  <label
+                    className="absolute inset-0 flex items-center justify-center bg-black/55 rounded-2xl opacity-0 group-hover/icon:opacity-100 transition-opacity cursor-pointer"
+                    title="Upload custom avatar image"
+                  >
+                    <Upload className="w-5 h-5 text-white" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
+                  </label>
+                )}
+
+                {canEditProfileFields && adminSettings.allowAvatarImageUpload && !isEditingAvatarIcon && (
+                  <span
+                    className="pointer-events-none absolute -bottom-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center shadow-md"
+                    style={{
+                      backgroundColor: theme.buttonColor,
+                      color: theme.buttonTextColor,
+                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                    }}
+                  >
+                    <Upload className="w-2.5 h-2.5" />
+                  </span>
+                )}
+              </div>
+
               {canEditProfileFields && adminSettings.allowAvatarImageUpload && (
-                <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl opacity-0 group-hover/icon:opacity-100 transition-opacity cursor-pointer">
-                  <Upload className="w-5 h-5 text-white" />
-                  <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
-                </label>
+                <div className="flex flex-col gap-1 shrink-0">
+                  <label
+                    className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-bold cursor-pointer hover:opacity-90 transition-all shadow-sm"
+                    style={{
+                      backgroundColor: theme.buttonColor,
+                      color: theme.buttonTextColor,
+                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                    }}
+                    title="Upload custom image for your pony's profile icon"
+                  >
+                    <Upload className="w-3 h-3" />
+                    <span>Upload Image</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingAvatarIcon((prev) => !prev)}
+                    className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg bg-slate-900 border text-[10px] font-semibold cursor-pointer hover:bg-slate-800 transition-colors"
+                    style={{
+                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                      color: theme.textColor,
+                    }}
+                    title="Type an emoji or emoticon instead"
+                  >
+                    <Smile className="w-2.5 h-2.5" />
+                    <span>Emoji</span>
+                  </button>
+                </div>
               )}
             </div>
 
@@ -741,8 +850,22 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                 ) : (
                   <h2 className="text-xl font-extrabold flex-1 min-w-0 truncate" style={{ color: theme.textColor }}>{pony.name}</h2>
                 )}
-                {(isPonyOwner || purchasedBadgeStatuses.length > 0) && (
+                {(isPonyOwner || !!mostRecentBadge || (canEditProfileFields && hasUnsavedProfileChanges)) && (
                   <div className="ml-auto flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {canEditProfileFields && hasUnsavedProfileChanges && (
+                      <button
+                        type="button"
+                        onClick={() => handleSaveProfileChanges(false)}
+                        className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border transition-all cursor-pointer hover:opacity-90 shadow-sm"
+                        style={{
+                          backgroundColor: theme.buttonColor,
+                          color: theme.buttonTextColor,
+                          borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                        }}
+                      >
+                        Save Profile
+                      </button>
+                    )}
                     {isPonyOwner && (
                       <>
                         {adminSettings.allowMainPonySelection && (
@@ -775,35 +898,45 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                         </button>
                       </>
                     )}
-                    {purchasedBadgeStatuses.length > 0 && (
-                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-                        {purchasedBadgeStatuses.map((bStatus) => {
-                          const isAccepted = (pony.acceptedBadges || []).includes(bStatus.id);
-                          return (
-                            <button
-                              key={bStatus.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedBadgeStatus(bStatus);
-                                setIsBadgeModalOpen(true);
-                              }}
-                              className={`relative p-1.5 bg-purple-950/60 border rounded-xl text-lg flex items-center justify-center shrink-0 shadow hover:scale-105 transition-all cursor-pointer theme-border-hover ${!isAccepted && isPonyOwner ? 'ring-1 ring-amber-400/70' : ''}`}
-                              style={{ borderColor: theme.borderColor }}
-                              title={isAccepted ? `${bStatus.name} (Accepted)` : `${bStatus.name} — Click to view & accept badge`}
-                            >
-                              {bStatus.badgeIcon && bStatus.badgeIcon.startsWith('data:image') ? (
-                                <img src={bStatus.badgeIcon} alt={bStatus.name} className="w-5 h-5 rounded object-cover" />
-                              ) : (
-                                bStatus.badgeIcon || '⭐'
-                              )}
-                              {!isAccepted && isPonyOwner && (
-                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border border-slate-950" />
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                    {mostRecentBadge && (() => {
+                      const isAccepted = (pony.acceptedBadges || []).includes(mostRecentBadge.id);
+                      const isInteractive = canPressBadge(mostRecentBadge);
+                      const badgeVisual =
+                        mostRecentBadge.badgeIcon &&
+                        (mostRecentBadge.badgeIcon.startsWith('data:image') || mostRecentBadge.badgeIcon.startsWith('http')) ? (
+                          <img src={mostRecentBadge.badgeIcon} alt="" className="w-5 h-5 rounded object-cover" />
+                        ) : (
+                          mostRecentBadge.badgeIcon || '⭐'
+                        );
+
+                      if (!isInteractive) {
+                        return (
+                          <div
+                            className="relative p-1.5 bg-purple-950/60 border rounded-xl text-lg flex items-center justify-center shrink-0 shadow cursor-default select-none"
+                            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                          >
+                            {badgeVisual}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBadgeStatusId(mostRecentBadge.id);
+                            setIsBadgeModalOpen(true);
+                          }}
+                          className={`relative p-1.5 bg-purple-950/60 border rounded-xl text-lg flex items-center justify-center shrink-0 shadow transition-all cursor-pointer ${!isAccepted ? 'ring-1 ring-amber-400/70' : ''}`}
+                          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                        >
+                          {badgeVisual}
+                          {!isAccepted && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border border-slate-950" />
+                          )}
+                        </button>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -1724,6 +1857,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
           pony={pony}
           statuses={statuses}
           onUpdatePony={onUpdatePony}
+          onUpdateStatus={isAdmin && !isSimulatingNonAdmin ? handleUpdateStatus : undefined}
           isPonyOwner={isPonyOwner}
           isAdmin={isAdmin && !isSimulatingNonAdmin}
           targetDate={targetDate}
@@ -1735,13 +1869,19 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
         isOpen={isBadgeModalOpen}
         onClose={() => {
           setIsBadgeModalOpen(false);
-          setSelectedBadgeStatus(null);
+          setSelectedBadgeStatusId(null);
         }}
         status={selectedBadgeStatus}
+        statuses={statuses}
         pony={pony}
+        isPonyOwner={isPonyOwner}
         isAdmin={isAdmin && !isSimulatingNonAdmin}
         onUpdateStatus={handleUpdateStatus}
-        onUpdatePony={(isPonyOwner || (isAdmin && !isSimulatingNonAdmin)) ? onUpdatePony : undefined}
+        onUpdatePony={isPonyOwner ? onUpdatePony : undefined}
+        onAccessDenied={() => {
+          setIsBadgeModalOpen(false);
+          setSelectedBadgeStatusId(null);
+        }}
       />
 
       {/* 2-Step Gift Confirmation Popup Modal */}
@@ -1890,6 +2030,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
         onCropComplete={(croppedDataUrl) => {
           setProfileDraft((prev) => ({ ...prev, avatarIcon: croppedDataUrl }));
           setCropperRawImage(null);
+          setProfileNotice('Custom avatar ready — click Save Profile or Save & Close to save.');
         }}
         title={`Crop & Zoom ${pony.name}'s Avatar`}
         outputWidth={400}

@@ -15,7 +15,9 @@ export async function resizeImageToMax(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (typeof input === 'string' && input.startsWith('http')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     const handleLoad = () => {
       let width = img.width;
@@ -73,7 +75,9 @@ export async function cropAndScaleImage(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (imageSrc.startsWith('http')) {
+      img.crossOrigin = 'anonymous';
+    }
 
     img.onload = () => {
       const canvas = document.createElement('canvas');

@@ -105,6 +105,31 @@ export function calculateDaysActive(
   return Math.max(1, diffDays + 1);
 }
 
+export function getSortedStatuses(statuses: CustomStatus[] = []): CustomStatus[] {
+  return [...statuses].sort((a, b) => {
+    const priceDiff = (a.price || 0) - (b.price || 0);
+    if (priceDiff !== 0) return priceDiff;
+    return (a.multiplier || 0) - (b.multiplier || 0);
+  });
+}
+
+export function isStatusOwnedByPony(
+  pony: PonyNode,
+  status: CustomStatus,
+  allowExchangeStore: boolean
+): boolean {
+  if (!allowExchangeStore) return true;
+  const purchased = pony.purchasedBadges || [];
+  return (
+    purchased.includes(status.id) ||
+    (status.badgeIcon ? purchased.includes(status.badgeIcon) : false) ||
+    pony.status === status.id ||
+    pony.status === status.name ||
+    !status.price ||
+    status.price === 0
+  );
+}
+
 export function getPonyStatusMultiplier(pony: PonyNode, statuses?: CustomStatus[]): number {
   if (!statuses || !pony.status) return 1.0;
   const lowerStatus = pony.status.toLowerCase();
@@ -126,7 +151,13 @@ export function hasMagicAndAccountingAccess(
   if (!pony || !statuses) return false;
   const purchasedIds = new Set(pony.purchasedBadges || []);
   if (pony.status) purchasedIds.add(pony.status);
-  return statuses.some(s => (purchasedIds.has(s.id) || purchasedIds.has(s.name)) && Boolean(s.allowMagicAndAccounting));
+  return statuses.some(
+    (s) =>
+      (purchasedIds.has(s.id) ||
+        purchasedIds.has(s.name) ||
+        (s.badgeIcon ? purchasedIds.has(s.badgeIcon) : false)) &&
+      Boolean(s.allowMagicAndAccounting)
+  );
 }
 
 export function calculatePonyDailyRate(

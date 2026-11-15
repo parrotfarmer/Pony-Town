@@ -17,6 +17,7 @@ import { ImageCropperModal } from './ImageCropperModal';
 import { EmoticonIconPicker } from './EmoticonIconPicker';
 import { useSettings } from '../context/SettingsContext';
 import { resizeImageToMax } from '../utils/imageUtils';
+import { getSortedStatuses } from '../utils/calculations';
 
 interface OnboardingSplashModalProps {
   isOpen: boolean;
@@ -95,8 +96,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
     }
     if (!ponyName.trim()) return;
 
-    // Default to initial status (admin only controls multiplier changes)
-    const defaultStatusId = statuses[0]?.id || 'active';
+    // Default to initial ranked status
+    const defaultStatusId = getSortedStatuses(statuses)[0]?.id || 'active';
 
     const newPony: PonyNode = {
       id: `pony-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -398,37 +399,84 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                       )}
                     </div>
                     {adminSettings.allowAvatarImageUpload && (
-                      <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl opacity-0 group-hover/onboard-avatar:opacity-100 transition-opacity cursor-pointer">
-                        <Upload className="w-5 h-5 text-white" />
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          className="hidden" 
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              try {
-                                const resized = await resizeImageToMax(file, 400, 400);
-                                setCropperRawImage(resized);
-                              } catch (err) {
-                                console.error(err);
+                      <>
+                        <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl opacity-0 group-hover/onboard-avatar:opacity-100 transition-opacity cursor-pointer" title="Upload custom avatar image">
+                          <Upload className="w-5 h-5 text-white" />
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="hidden" 
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = '';
+                              if (file) {
+                                try {
+                                  const resized = await resizeImageToMax(file, 400, 400);
+                                  setCropperRawImage(resized);
+                                } catch (err) {
+                                  console.error(err);
+                                }
                               }
-                            }
-                          }} 
-                        />
-                      </label>
+                            }} 
+                          />
+                        </label>
+                        <span
+                          className="pointer-events-none absolute -bottom-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center shadow"
+                          style={{
+                            backgroundColor: theme.buttonColor,
+                            color: theme.buttonTextColor,
+                            borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                          }}
+                        >
+                          <Upload className="w-2.5 h-2.5" />
+                        </span>
+                      </>
                     )}
                   </div>
                   <div className="flex-1 space-y-2">
-                    <EmoticonIconPicker
-                      value={avatarIcon}
-                      onChange={setAvatarIcon}
-                      theme={theme}
-                      compact={true}
-                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex-1 min-w-[200px]">
+                        <EmoticonIconPicker
+                          value={avatarIcon}
+                          onChange={setAvatarIcon}
+                          theme={theme}
+                          compact={true}
+                        />
+                      </div>
+                      {adminSettings.allowAvatarImageUpload && (
+                        <label
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold cursor-pointer hover:opacity-90 transition-all shadow-sm shrink-0"
+                          style={{
+                            backgroundColor: theme.buttonColor,
+                            color: theme.buttonTextColor,
+                            borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                          }}
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload Image</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = '';
+                              if (file) {
+                                try {
+                                  const resized = await resizeImageToMax(file, 400, 400);
+                                  setCropperRawImage(resized);
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
                     <p className="text-[11px] text-slate-400 leading-tight">
                       {adminSettings.allowAvatarImageUpload
-                        ? 'Choose an emoji/emoticon or hover the preview box to upload a custom picture.'
+                        ? 'Choose an emoji/emoticon or click Upload Image for a custom picture.'
                         : 'Pick or type an emoji/emoticon for your pony profile across the network.'}
                     </p>
                   </div>

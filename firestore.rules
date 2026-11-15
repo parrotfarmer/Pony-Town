@@ -22,14 +22,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
-        (
-          request.auth.token.keys().hasAll(['email', 'email_verified']) &&
-          request.auth.token.email_verified == true &&
-          request.auth.token.email in ['artandtraveltoday@gmail.com', 'ball.bryan.j@gmail.com']
-        )
-      );
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     function isValidPonyCore(data) {
@@ -123,6 +116,11 @@ service cloud.firestore {
 
     match /statuses/{statusId} {
       allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /badgePages/{statusId} {
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 

@@ -180,7 +180,6 @@ const STORAGE_KEY_TAXONOMIES = 'pony_network_taxonomies_cache_v1';
 const STORAGE_KEY_DEFAULTS_SEEDED = 'pony_network_defaults_seeded_v1';
 const STORAGE_KEY_BORDERS_CACHE = 'store_custom_borders_v1';
 const STORAGE_KEY_BORDERS_SEEDED = 'pony_network_borders_seeded_v1';
-const TAXONOMIES_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (admins still refresh local cache on edits)
 
 interface CachedTaxonomies {
   speciesOptions: SpeciesOption[];
@@ -429,13 +428,157 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const didSeedGlobalSettingsRef = useRef(false);
+  const ensureGlobalAdminSettings = useCallback(async () => {
+    if (!isAdmin || !user || didSeedGlobalSettingsRef.current) return;
+    didSeedGlobalSettingsRef.current = true;
+    try {
+      const globalRef = doc(db, 'appSettings', 'global');
+      const snap = await getDoc(globalRef);
+      if (!snap.exists()) {
+        await setDoc(
+          globalRef,
+          stripUndefined({
+            ...DEFAULT_ADMIN_SETTINGS,
+            updatedAt: new Date().toISOString(),
+            updatedBy: user.uid,
+          }),
+          { merge: true }
+        );
+      }
+    } catch (err) {
+      console.warn('Could not ensure initial appSettings/global:', err);
+    }
+  }, [isAdmin, user]);
+
   useEffect(() => {
     if (user && isAdmin) {
       void seedDefaults();
       void seedDefaultStoreBorders();
+      void ensureGlobalAdminSettings();
     }
-  }, [user, isAdmin]);
+  }, [user, isAdmin, ensureGlobalAdminSettings]);
 
+  // Keep latest taxonomy slices in refs so any individual real-time snapshot updates cache accurately
+  const taxonomiesLatestRef = useRef({
+    speciesOptions,
+    elementOptions,
+    locationOptions,
+  });
+  taxonomiesLatestRef.current = { speciesOptions, elementOptions, locationOptions };
+
+  // Real-time public listeners for shared global admin settings, store borders, and taxonomies
+  useEffect(() => {
+    let loadedCount = 0;
+    const markLoaded = () => {
+      loadedCount += 1;
+      if (loadedCount >= 3) {
+        setLoading(false);
+      }
+    };
+
+    const unsubAdminSettings = onSnapshot(
+      doc(db, 'appSettings', 'global'),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as Partial<AdminAppSettings>;
+          const merged: AdminAppSettings = { ...DEFAULT_ADMIN_SETTINGS, ...data };
+          setAdminSettings(merged);
+          try {
+            localStorage.setItem(STORAGE_KEY_ADMIN_SETTINGS, JSON.stringify(merged));
+          } catch {}
+        }
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.GET, 'appSettings/global');
+      }
+    );
+
+    const unsubStoreBorders = onSnapshot(
+      collection(db, 'storeBorders'),
+      (snap) => {
+        if (!snap.empty) {
+          const items = snap.docs
+            .map((d) => ({ id: d.id, ...d.data() } as StoreBorderCatalogItem))
+            .sort((a, b) => (a.price || 0) - (b.price || 0) || (a.name || '').localeCompare(b.name || ''));
+          setStoreBorders(items);
+          try {
+            localStorage.setItem(STORAGE_KEY_BORDERS_CACHE, JSON.stringify({ items, cachedAt: Date.now() }));
+          } catch {}
+        }
+      },
+      (err) => {
+        console.warn('Could not load storeBorders from Firestore:', err);
+      }
+    );
+
+    const unsubSpecies = onSnapshot(
+      query(collection(db, 'species'), orderBy('name')),
+      (snap) => {
+        const nextSp = snap.docs.map((d) => ({ id: d.id, ...d.data() } as SpeciesOption));
+        taxonomiesLatestRef.current.speciesOptions = nextSp;
+        setSpeciesOptions(nextSp);
+        writeCachedTaxonomies(
+          nextSp,
+          taxonomiesLatestRef.current.elementOptions,
+          taxonomiesLatestRef.current.locationOptions
+        );
+        markLoaded();
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'species');
+        setLoading(false);
+      }
+    );
+
+    const unsubElements = onSnapshot(
+      query(collection(db, 'elements'), orderBy('name')),
+      (snap) => {
+        const nextEl = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ElementOption));
+        taxonomiesLatestRef.current.elementOptions = nextEl;
+        setElementOptions(nextEl);
+        writeCachedTaxonomies(
+          taxonomiesLatestRef.current.speciesOptions,
+          nextEl,
+          taxonomiesLatestRef.current.locationOptions
+        );
+        markLoaded();
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'elements');
+        setLoading(false);
+      }
+    );
+
+    const unsubLocations = onSnapshot(
+      query(collection(db, 'locations'), orderBy('name')),
+      (snap) => {
+        const nextLoc = snap.docs.map((d) => ({ id: d.id, ...d.data() } as LocationOption));
+        taxonomiesLatestRef.current.locationOptions = nextLoc;
+        setLocationOptions(nextLoc);
+        writeCachedTaxonomies(
+          taxonomiesLatestRef.current.speciesOptions,
+          taxonomiesLatestRef.current.elementOptions,
+          nextLoc
+        );
+        markLoaded();
+      },
+      (err) => {
+        handleFirestoreError(err, OperationType.LIST, 'locations');
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      unsubAdminSettings();
+      unsubStoreBorders();
+      unsubSpecies();
+      unsubElements();
+      unsubLocations();
+    };
+  }, []);
+
+  // User-specific settings sync (/userSettings/{uid})
   useEffect(() => {
     if (!user) {
       if (!authLoading) {
@@ -458,97 +601,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           localStorage.removeItem('pony_free_gifts_map_v1');
         } catch {}
       }
-      setLoading(false);
       return;
     }
 
     let cancelled = false;
-
-    const loadTaxonomiesOnceIfNeeded = async () => {
-      const cached = readCachedTaxonomies();
-      const isFresh = cached && Date.now() - (cached.cachedAt || 0) < TAXONOMIES_TTL_MS;
-      if (
-        isFresh &&
-        cached.speciesOptions.length > 0 &&
-        cached.elementOptions.length > 0 &&
-        cached.locationOptions.length > 0
-      ) {
-        if (!cancelled) {
-          setSpeciesOptions(cached.speciesOptions);
-          setElementOptions(cached.elementOptions);
-          setLocationOptions(cached.locationOptions);
-          setLoading(false);
-        }
-      } else {
-        try {
-          const [spSnap, elSnap, locSnap] = await Promise.all([
-            getDocs(query(collection(db, 'species'), orderBy('name'))),
-            getDocs(query(collection(db, 'elements'), orderBy('name'))),
-            getDocs(query(collection(db, 'locations'), orderBy('name'))),
-          ]);
-          if (cancelled) return;
-          const nextSp = spSnap.docs.map((d) => ({ id: d.id, ...d.data() } as SpeciesOption));
-          const nextEl = elSnap.docs.map((d) => ({ id: d.id, ...d.data() } as ElementOption));
-          const nextLoc = locSnap.docs.map((d) => ({ id: d.id, ...d.data() } as LocationOption));
-          setSpeciesOptions(nextSp);
-          setElementOptions(nextEl);
-          setLocationOptions(nextLoc);
-          writeCachedTaxonomies(nextSp, nextEl, nextLoc);
-        } catch (err) {
-          handleFirestoreError(err, OperationType.LIST, 'taxonomies');
-        } finally {
-          if (!cancelled) setLoading(false);
-        }
-      }
-    };
-
-    const loadStoreBordersOnceIfNeeded = async () => {
-      const cached = readLocalJson<{ items: StoreBorderCatalogItem[]; cachedAt?: number } | null>(
-        STORAGE_KEY_BORDERS_CACHE,
-        null
-      );
-      if (cached && !Array.isArray(cached) && cached.items?.length > 0 && Date.now() - (cached.cachedAt || 0) < TAXONOMIES_TTL_MS) {
-        if (!cancelled) setStoreBorders(cached.items);
-        return;
-      }
-      try {
-        const snap = await getDocs(collection(db, 'storeBorders'));
-        if (cancelled) return;
-        if (!snap.empty) {
-          const items = snap.docs
-            .map((d) => ({ id: d.id, ...d.data() } as StoreBorderCatalogItem))
-            .sort((a, b) => (a.price || 0) - (b.price || 0));
-          setStoreBorders(items);
-          try {
-            localStorage.setItem(STORAGE_KEY_BORDERS_CACHE, JSON.stringify({ items, cachedAt: Date.now() }));
-          } catch {}
-        }
-      } catch (err) {
-        console.warn('Could not load storeBorders from Firestore:', err);
-      }
-    };
-
-    void loadTaxonomiesOnceIfNeeded();
-    void loadStoreBordersOnceIfNeeded();
-
-    const unsubAdminSettings = onSnapshot(
-      doc(db, 'appSettings', 'global'),
-      (snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as Partial<AdminAppSettings>;
-          setAdminSettings((prev) => {
-            const merged = { ...DEFAULT_ADMIN_SETTINGS, ...prev, ...data };
-            try {
-              localStorage.setItem(STORAGE_KEY_ADMIN_SETTINGS, JSON.stringify(merged));
-            } catch {}
-            return merged;
-          });
-        }
-      },
-      (err) => {
-        handleFirestoreError(err, OperationType.GET, 'appSettings/global');
-      }
-    );
 
     const loadUserSettingsOnce = async () => {
       try {
@@ -609,7 +665,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     return () => {
       cancelled = true;
-      unsubAdminSettings();
     };
   }, [user, authLoading]);
 
