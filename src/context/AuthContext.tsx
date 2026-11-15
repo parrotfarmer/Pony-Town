@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   User, 
-  signInWithPopup, 
   signInWithRedirect,
+  getRedirectResult,
   signOut, 
   onAuthStateChanged,
   createUserWithEmailAndPassword,
@@ -147,6 +147,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          await fetchOrCreateProfile(result.user);
+        }
+      })
+      .catch((err) => {
+        console.warn('Redirect sign-in result error:', err);
+      });
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -162,16 +172,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async () => {
     try {
-      const res = await signInWithPopup(auth, googleProvider);
-      await fetchOrCreateProfile(res.user);
+      await signInWithRedirect(auth, googleProvider);
     } catch (err) {
-      console.warn('Google Sign In Popup blocked or failed, falling back to redirect:', err);
-      try {
-        await signInWithRedirect(auth, googleProvider);
-      } catch (redirectErr) {
-        console.error('Google Sign In Redirect Error:', redirectErr);
-        throw redirectErr;
-      }
+      console.error('Google Sign In Redirect Error:', err);
+      throw err;
     }
   };
 
