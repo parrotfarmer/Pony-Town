@@ -18,8 +18,9 @@ export const PonyAvatar: React.FC<PonyAvatarProps> = ({
   showBorder = true 
 }) => {
   const { adminSettings } = useSettings();
+  const allowBorders = adminSettings.allowProfileBorders !== false;
   const liveAnimationsEnabled = Boolean(adminSettings.allowLiveFlowAnimations);
-  const equippedBorder = pony.customData?.equippedBorder;
+  const equippedBorder = allowBorders ? pony.customData?.equippedBorder : undefined;
   const borderEffectColor = theme.rainbowGlowColor || theme.borderEffectColor || pony.customData?.borderEffectColor || pony.profileBorderColor || theme.borderColor;
   
   const sizeClasses = {

@@ -75,9 +75,15 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
   targetDate,
   onAddToReservoir,
 }) => {
-  const { theme, storeBorders, addStoreBorder, unlockStoreItems } = useSettings();
+  const { theme, storeBorders, addStoreBorder, unlockStoreItems, adminSettings, updateAdminSettings } = useSettings();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'ranks' | 'borders' | 'perks'>('ranks');
+
+  React.useEffect(() => {
+    if (!adminSettings.allowProfileBorders && activeTab === 'borders') {
+      setActiveTab('ranks');
+    }
+  }, [adminSettings.allowProfileBorders, activeTab]);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   // Admin custom border creation form state
@@ -344,18 +350,20 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
             Status Badges
           </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('borders')}
-            className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 ${
-              activeTab === 'borders'
-                ? 'border-white opacity-100'
-                : 'border-transparent opacity-60 hover:opacity-90'
-            }`}
-            style={{ color: theme.textColor, borderColor: activeTab === 'borders' ? theme.textColor : 'transparent' }}
-          >
-            Profile Borders
-          </button>
+          {adminSettings.allowProfileBorders !== false && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('borders')}
+              className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 ${
+                activeTab === 'borders'
+                  ? 'border-white opacity-100'
+                  : 'border-transparent opacity-60 hover:opacity-90'
+              }`}
+              style={{ color: theme.textColor, borderColor: activeTab === 'borders' ? theme.textColor : 'transparent' }}
+            >
+              Profile Borders
+            </button>
+          )}
 
           <button
             type="button"
@@ -665,7 +673,9 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
           <div className="p-5 space-y-3 overflow-y-auto max-h-[60vh] text-xs">
             {INITIAL_STORE_PERKS.map((perk) => {
               const owned = purchasedPerks.includes(perk.id);
-              const canAfford = currentLove >= perk.price;
+              const price = adminSettings.perkPrices?.[perk.id] ?? perk.price;
+              const canAfford = currentLove >= price;
+              const perkWithPrice = { ...perk, price };
 
               return (
                 <div
@@ -684,6 +694,30 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {isAdmin && (
+                      <div className="flex items-center gap-1">
+                        <span className="opacity-70 text-[10px]" style={{ color: theme.textColor }}>Price:</span>
+                        <input
+                          type="number"
+                          step="50"
+                          min="0"
+                          value={price}
+                          onChange={(e) => {
+                            const nextPrice = Math.max(0, Number(e.target.value) || 0);
+                            updateAdminSettings({
+                              perkPrices: {
+                                ...(adminSettings.perkPrices || {}),
+                                [perk.id]: nextPrice,
+                              },
+                            });
+                          }}
+                          className="w-16 bg-slate-900 border rounded px-1.5 py-1 text-center font-bold text-xs"
+                          style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                        />
+                        <span className="opacity-60 text-[10px]" style={{ color: theme.textColor }}>Love</span>
+                      </div>
+                    )}
+
                     {owned ? (
                       <span className="px-3 py-1 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1">
                         <Check className="w-3.5 h-3.5" />
@@ -692,16 +726,16 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                     ) : (isPonyOwner || isAdmin) ? (
                       <button
                         type="button"
-                        onClick={() => setConfirmingPurchase({ type: 'perk', item: perk })}
+                        onClick={() => setConfirmingPurchase({ type: 'perk', item: perkWithPrice })}
                         disabled={!canAfford}
                         className="px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all border cursor-pointer theme-border-hover disabled:opacity-50 min-w-[80px] text-center"
                         style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
                       >
-                        {perk.price} Love
+                        {price} Love
                       </button>
                     ) : (
                       <span className="opacity-70 font-semibold text-xs" style={{ color: theme.textColor }}>
-                        {perk.price} Love
+                        {price} Love
                       </span>
                     )}
                   </div>

@@ -86,6 +86,8 @@ export interface AdminAppSettings {
   allowLivePulseUpdates: boolean;
   allowLiveFlowAnimations: boolean;
   allowAutoDailyAccrual: boolean;
+  allowProfileBorders: boolean;
+  perkPrices: Record<string, number>;
 }
 
 export const DEFAULT_ADMIN_SETTINGS: AdminAppSettings = {
@@ -99,6 +101,18 @@ export const DEFAULT_ADMIN_SETTINGS: AdminAppSettings = {
   allowLivePulseUpdates: false,
   allowLiveFlowAnimations: true,
   allowAutoDailyAccrual: false,
+  allowProfileBorders: true,
+  perkPrices: {
+    bgColor: 500,
+    textColor: 500,
+    borderColor: 500,
+    borderHoverColor: 500,
+    buttonColor: 500,
+    bgImage: 1000,
+    graphColors: 750,
+    connectionLineColors: 750,
+    savedThemes: 1000,
+  },
 };
 
 export interface StoreBorderCatalogItem {

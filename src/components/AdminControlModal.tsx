@@ -261,6 +261,20 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({
                 />
               </label>
 
+              {/* Profile Borders Feature Lock */}
+              <label className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 cursor-pointer hover:border-purple-500/40 transition-colors">
+                <div>
+                  <strong className="text-white block">Profile Borders (Exchange & User Icons)</strong>
+                  <span className="text-[10px] text-slate-400">Enable and show profile borders in the exchange and profile border styling on user icons in general</span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={adminSettings.allowProfileBorders ?? true}
+                  onChange={(e) => updateAdminSettings({ allowProfileBorders: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-pink-500 focus:ring-pink-500 cursor-pointer shrink-0"
+                />
+              </label>
+
               {/* Main Pony Selection Lock */}
               <label className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3 cursor-pointer hover:border-purple-500/40 transition-colors">
                 <div>
