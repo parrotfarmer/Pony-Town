@@ -3,8 +3,6 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import {
   getFirestore,
   initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
   doc,
   getDocFromServer,
   Firestore,
@@ -20,9 +18,6 @@ try {
   dbInstance = initializeFirestore(
     app,
     {
-      localCache: persistentLocalCache({
-        tabManager: persistentMultipleTabManager(),
-      }),
       experimentalAutoDetectLongPolling: true,
     },
     dbId

@@ -607,26 +607,35 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
     };
   }, [draggingNodeId, isPanning, panStart, transform.scale, selectedPonyIds, isConnectMode, isAdmin, currentUserId, isOwner, onSelectPony, onUpdatePony, onUpdatePonies]);
 
-  // Zoom handlers
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-    const newScale = Math.min(2.5, Math.max(0.35, transform.scale * zoomFactor));
+  // Zoom handlers with non-passive wheel listener
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
 
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      setTransform(prev => {
+        const newScale = Math.min(2.5, Math.max(0.35, prev.scale * zoomFactor));
+        const rect = el.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-      const nextTransform = {
-        scale: newScale,
-        x: mouseX - (mouseX - transform.x) * (newScale / transform.scale),
-        y: mouseY - (mouseY - transform.y) * (newScale / transform.scale),
-      };
-      setTransform(nextTransform);
-      setTargetTransform(nextTransform);
-    }
-  };
+        const nextTransform = {
+          scale: newScale,
+          x: mouseX - (mouseX - prev.x) * (newScale / prev.scale),
+          y: mouseY - (mouseY - prev.y) * (newScale / prev.scale),
+        };
+        setTargetTransform(nextTransform);
+        return nextTransform;
+      });
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, []);
 
   const handleZoom = (direction: 'in' | 'out') => {
     const factor = direction === 'in' ? 1.25 : 0.8;
@@ -1053,7 +1062,6 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
         `,
         backgroundSize: '100% 100%, 40px 40px, 40px 40px',
       }}
-      onWheel={handleWheel}
       onContextMenu={handleCanvasContextMenu}
     >
       {/* Top Left: Ponies & Links Count */}
