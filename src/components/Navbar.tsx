@@ -53,13 +53,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenThemeSettings,
   isAdmin,
 }) => {
-  const { user, profile, logout } = useAuth();
+  const { user, profile, logout, resetPassword } = useAuth();
   const { theme, adminSettings } = useSettings();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSendPasswordReset = async () => {
+    if (!user?.email) {
+      alert('No email address is associated with your current session.');
+      return;
+    }
+    try {
+      await resetPassword(user.email);
+      alert(`Firebase has sent a password reset email to ${user.email}. Please check your inbox and spam folder.`);
+      setIsSettingsOpen(false);
+    } catch (err: any) {
+      alert(err.message || 'Failed to send password reset email.');
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -262,8 +276,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span>Settings</span>
                 </button>
 
-                {/* Account Option - ONLY shown if NOT signed in */}
-                {!user && (
+                {/* Account Options */}
+                {user ? (
+                  <button
+                    onClick={handleSendPasswordReset}
+                    className="w-full flex items-center px-3 py-2 rounded-lg transition-colors text-left hover:bg-slate-800/80 text-xs"
+                    style={{ color: theme.textColor }}
+                    title={`Send password reset link to ${user.email}`}
+                  >
+                    <span>Reset Password (Firebase)</span>
+                  </button>
+                ) : (
                   <button
                     onClick={() => {
                       setIsSettingsOpen(false);
@@ -272,7 +295,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="w-full flex items-center px-3 py-2 rounded-lg transition-colors text-left hover:bg-slate-800/80"
                     style={{ color: theme.textColor }}
                   >
-                    <span>Create Account / Admin</span>
+                    <span>Create Account / Sign In</span>
                   </button>
                 )}
 

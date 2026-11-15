@@ -204,8 +204,10 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
               )}
             </div>
             <div className="flex-1">
-              <label className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>Pony Name *</label>
+              <label htmlFor="add-pony-name" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>Pony Name *</label>
               <input
+                id="add-pony-name"
+                name="name"
                 type="text"
                 required
                 placeholder=""
@@ -249,10 +251,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
           {/* Species & Element */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="font-medium block mb-1" style={{ color: theme.textColor }}>
+              <label htmlFor="add-pony-species" className="font-medium block mb-1" style={{ color: theme.textColor }}>
                 Species
               </label>
               <input
+                id="add-pony-species"
+                name="species"
                 type="text"
                 value={species}
                 onChange={(e) => setSpecies(e.target.value)}
@@ -261,10 +265,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
               />
             </div>
             <div>
-              <label className="font-medium block mb-1" style={{ color: theme.textColor }}>
+              <label htmlFor="add-pony-element" className="font-medium block mb-1" style={{ color: theme.textColor }}>
                 Element / Affinity
               </label>
               <input
+                id="add-pony-element"
+                name="element"
                 type="text"
                 value={element}
                 onChange={(e) => setElement(e.target.value)}
@@ -277,10 +283,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
           {/* Extended Profile Fields */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+              <label htmlFor="add-pony-favoriteTreat" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
                 Favorite Treat
               </label>
               <input
+                id="add-pony-favoriteTreat"
+                name="favoriteTreat"
                 type="text"
                 value={favoriteTreat}
                 onChange={(e) => setFavoriteTreat(e.target.value)}
@@ -290,10 +298,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+              <label htmlFor="add-pony-hobby" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
                 Hobby
               </label>
               <input
+                id="add-pony-hobby"
+                name="hobby"
                 type="text"
                 value={hobby}
                 onChange={(e) => setHobby(e.target.value)}
@@ -303,10 +313,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+              <label htmlFor="add-pony-personality" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
                 Personality
               </label>
               <input
+                id="add-pony-personality"
+                name="personality"
                 type="text"
                 value={personality}
                 onChange={(e) => setPersonality(e.target.value)}
@@ -316,10 +328,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
               />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+              <label htmlFor="add-pony-magicalAffinity" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
                 Magical Affinity
               </label>
               <input
+                id="add-pony-magicalAffinity"
+                name="magicalAffinity"
                 type="text"
                 value={magicalAffinity}
                 onChange={(e) => setMagicalAffinity(e.target.value)}
@@ -331,10 +345,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+            <label htmlFor="add-pony-backstory" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
               Backstory
             </label>
             <textarea
+              id="add-pony-backstory"
+              name="backstory"
               rows={2}
               value={backstory}
               onChange={(e) => setBackstory(e.target.value)}
@@ -345,10 +361,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
           </div>
 
           <div>
-            <label className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+            <label htmlFor="add-pony-cutieMark" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
               Cutie Mark
             </label>
             <input
+              id="add-pony-cutieMark"
+              name="cutieMark"
               type="text"
               value={cutieMark}
               onChange={(e) => setCutieMark(e.target.value)}
@@ -360,10 +378,12 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
 
           {/* Location */}
           <div>
-            <label className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+            <label htmlFor="add-pony-location" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
               Location
             </label>
             <input
+              id="add-pony-location"
+              name="location"
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
@@ -374,8 +394,10 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
 
           {/* Information & Notes */}
           <div>
-            <label className="font-medium block mb-1 opacity-70" style={{ color: theme.textColor }}>Notes</label>
+            <label htmlFor="add-pony-notes" className="font-medium block mb-1 opacity-70" style={{ color: theme.textColor }}>Notes</label>
             <textarea
+              id="add-pony-notes"
+              name="notes"
               rows={3}
               placeholder=""
               value={notes}

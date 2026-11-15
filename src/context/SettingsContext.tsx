@@ -91,7 +91,7 @@ export interface AdminAppSettings {
 }
 
 export const DEFAULT_ADMIN_SETTINGS: AdminAppSettings = {
-  allowAvatarImageUpload: false,
+  allowAvatarImageUpload: true,
   allowMyPoniesSort: false,
   profileUpdateCooldownHours: 24,
   allowUserAddPony: false,

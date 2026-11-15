@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   User, 
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signOut, 
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, limit } from 'firebase/firestore';
@@ -45,9 +46,11 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   isAdmin: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<boolean>;
   registerWithEmail: (email: string, pass: string, name: string) => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  sendVerificationEmail: () => Promise<void>;
   logout: () => Promise<void>;
   setUserRole: (targetUid: string, role: UserRole) => Promise<void>;
   claimAdminRole: () => Promise<void>;
@@ -147,16 +150,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          await fetchOrCreateProfile(result.user);
-        }
-      })
-      .catch((err) => {
-        console.warn('Redirect sign-in result error:', err);
-      });
-
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -170,11 +163,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (): Promise<boolean> => {
     try {
-      await signInWithRedirect(auth, googleProvider);
-    } catch (err) {
-      console.error('Google Sign In Redirect Error:', err);
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result.user) {
+        await fetchOrCreateProfile(result.user);
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+        // User intentionally closed the popup — do not treat as an error
+        return false;
+      }
+      console.error('Google Sign In Popup Error:', err);
       throw err;
     }
   };
@@ -198,6 +200,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await fetchOrCreateProfile(res.user);
     } catch (err) {
       console.error('Login error:', err);
+      throw err;
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    const cleanEmail = (email || '').trim();
+    if (!cleanEmail) {
+      throw new Error('Please enter your email address to receive a password reset link.');
+    }
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+    } catch (err) {
+      console.error('Password reset error:', err);
+      throw err;
+    }
+  };
+
+  const sendVerificationEmail = async () => {
+    if (!auth.currentUser) {
+      throw new Error('No user is currently signed in.');
+    }
+    try {
+      await sendEmailVerification(auth.currentUser);
+    } catch (err) {
+      console.error('Email verification error:', err);
       throw err;
     }
   };
@@ -272,6 +299,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithGoogle,
         registerWithEmail,
         signInWithEmail,
+        resetPassword,
+        sendVerificationEmail,
         logout,
         setUserRole,
         claimAdminRole,

@@ -11,13 +11,17 @@ import {
   AlertCircle,
   ShieldCheck,
   Image as ImageIcon,
-  Upload
+  Upload,
+  KeyRound,
+  Mail,
+  ArrowLeft
 } from 'lucide-react';
 import { ImageCropperModal } from './ImageCropperModal';
 import { EmoticonIconPicker } from './EmoticonIconPicker';
 import { useSettings } from '../context/SettingsContext';
 import { resizeImageToMax } from '../utils/imageUtils';
 import { getSortedStatuses } from '../utils/calculations';
+import { formatAuthError } from '../utils/authErrors';
 
 interface OnboardingSplashModalProps {
   isOpen: boolean;
@@ -36,17 +40,18 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
   onUpdateProfileDisplayName,
   canAddPony = true,
 }) => {
-  const { user, signInWithGoogle, registerWithEmail, signInWithEmail } = useAuth();
+  const { user, signInWithGoogle, registerWithEmail, signInWithEmail, resetPassword } = useAuth();
   const { theme, adminSettings, markOnboardingCompleted } = useSettings();
 
   const [step, setStep] = useState<'splash' | 'auth' | 'create_pony'>('splash');
-  const [authMode, setAuthMode] = useState<'register' | 'signin'>('register');
+  const [authMode, setAuthMode] = useState<'register' | 'signin' | 'forgot_password'>('register');
   
   // Auth Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccessMsg, setAuthSuccessMsg] = useState<string | null>(null);
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
 
   // Pony Creation Form State
@@ -139,22 +144,32 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+    setAuthSuccessMsg(null);
     setIsSubmittingAuth(true);
 
     try {
       if (authMode === 'signin') {
         await signInWithEmail(email, password);
-      } else {
+        setStep('create_pony');
+      } else if (authMode === 'register') {
         if (!email.trim() || !password) {
           setAuthError('Please provide email and password');
           setIsSubmittingAuth(false);
           return;
         }
         await registerWithEmail(email, password, displayName || 'Pony Steward');
+        setStep('create_pony');
+      } else if (authMode === 'forgot_password') {
+        if (!email.trim()) {
+          setAuthError('Please enter your email address to reset your password.');
+          setIsSubmittingAuth(false);
+          return;
+        }
+        await resetPassword(email.trim());
+        setAuthSuccessMsg(`Password reset link sent to ${email.trim()}! Please check your email inbox and spam folder.`);
       }
-      setStep('create_pony');
     } catch (err: any) {
-      setAuthError(err.message || 'Authentication failed');
+      setAuthError(formatAuthError(err));
     } finally {
       setIsSubmittingAuth(false);
     }
@@ -162,12 +177,18 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
 
   const handleGoogleSignIn = async () => {
     setAuthError(null);
+    setAuthSuccessMsg(null);
     setIsSubmittingAuth(true);
     try {
-      await signInWithGoogle();
-      setStep('create_pony');
+      const signedIn = await signInWithGoogle();
+      if (signedIn) {
+        setStep('create_pony');
+      }
     } catch (err: any) {
-      setAuthError(err.message || 'Google sign in failed');
+      const formatted = formatAuthError(err);
+      if (formatted) {
+        setAuthError(formatted);
+      }
     } finally {
       setIsSubmittingAuth(false);
     }
@@ -236,30 +257,41 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
           <div className="p-6 space-y-4 overflow-y-auto">
             <div className="text-center space-y-1">
               <h2 className="text-lg font-bold text-white">
-                {authMode === 'register' ? 'Create Account' : 'Sign In to Your Account'}
+                {authMode === 'register' 
+                  ? 'Create Account' 
+                  : authMode === 'signin' 
+                    ? 'Sign In to Your Account' 
+                    : 'Reset Your Password'}
               </h2>
+              {authMode === 'forgot_password' && (
+                <p className="text-xs text-slate-400">
+                  Firebase will send a password reset link to your email.
+                </p>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs max-w-sm mx-auto">
-              <button
-                type="button"
-                onClick={() => setAuthMode('register')}
-                className={`py-2 font-bold rounded-lg transition-all ${
-                  authMode === 'register' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Register
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMode('signin')}
-                className={`py-2 font-bold rounded-lg transition-all ${
-                  authMode === 'signin' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Sign In
-              </button>
-            </div>
+            {authMode !== 'forgot_password' && (
+              <div className="grid grid-cols-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs max-w-sm mx-auto">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('register'); setAuthError(null); setAuthSuccessMsg(null); }}
+                  className={`py-2 font-bold rounded-lg transition-all ${
+                    authMode === 'register' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Register
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthSuccessMsg(null); }}
+                  className={`py-2 font-bold rounded-lg transition-all ${
+                    authMode === 'signin' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Sign In
+                </button>
+              </div>
+            )}
 
             {authError && (
               <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
@@ -268,11 +300,21 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
               </div>
             )}
 
+            {authSuccessMsg && (
+              <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{authSuccessMsg}</span>
+              </div>
+            )}
+
             <form onSubmit={handleAuthSubmit} className="space-y-3 max-w-md mx-auto text-xs">
               {authMode === 'register' && (
                 <div>
-                  <label className="text-slate-300 font-medium block mb-1">Your Name / Display Name *</label>
+                  <label htmlFor="onboard-display-name" className="text-slate-300 font-medium block mb-1">Your Name / Display Name *</label>
                   <input
+                    id="onboard-display-name"
+                    name="displayName"
+                    autoComplete="name"
                     type="text"
                     required
                     placeholder="e.g. Celestia Steward"
@@ -284,8 +326,11 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
               )}
 
               <div>
-                <label className="text-slate-300 font-medium block mb-1">Email Address *</label>
+                <label htmlFor="onboard-email" className="text-slate-300 font-medium block mb-1">Email Address *</label>
                 <input
+                  id="onboard-email"
+                  name="email"
+                  autoComplete="email"
                   type="email"
                   required
                   placeholder="steward@equestria.org"
@@ -295,26 +340,51 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="text-slate-300 font-medium block mb-1">Password *</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
-                />
-              </div>
+              {authMode !== 'forgot_password' && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="onboard-password" className="text-slate-300 font-medium block">Password *</label>
+                    {authMode === 'signin' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMode('forgot_password');
+                          setAuthError(null);
+                          setAuthSuccessMsg(null);
+                        }}
+                        className="text-[11px] text-pink-400 hover:text-pink-300 transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="onboard-password"
+                    name="password"
+                    autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'}
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
+                  />
+                </div>
+              )}
 
               <div className="pt-2 space-y-2">
                 <button
                   type="submit"
                   disabled={isSubmittingAuth}
-                  className="w-full py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold shadow-lg shadow-pink-600/30 flex items-center justify-center gap-2"
+                  className="w-full py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold shadow-lg shadow-pink-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
                 >
                   {isSubmittingAuth ? (
                     <span>Processing...</span>
+                  ) : authMode === 'forgot_password' ? (
+                    <>
+                      <Mail className="w-4 h-4" />
+                      <span>Send Password Reset Link</span>
+                    </>
                   ) : (
                     <>
                       <span>{authMode === 'register' ? 'Continue' : 'Sign In'}</span>
@@ -323,20 +393,35 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={isSubmittingAuth}
-                  className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 flex items-center justify-center gap-2"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.2 9 5 12 5z"/>
-                    <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
-                    <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.5s.7 2.8 1.9 5.2l3.7-2.9z"/>
-                    <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 17C3.7 20.7 7.5 24 12 24z"/>
-                  </svg>
-                  Google Account
-                </button>
+                {authMode === 'forgot_password' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signin');
+                      setAuthError(null);
+                      setAuthSuccessMsg(null);
+                    }}
+                    className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border border-slate-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Back to Sign In</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={isSubmittingAuth}
+                    className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.2 9 5 12 5z"/>
+                      <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"/>
+                      <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.5s.7 2.8 1.9 5.2l3.7-2.9z"/>
+                      <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.2-6.4-5.2L1.9 17C3.7 20.7 7.5 24 12 24z"/>
+                    </svg>
+                    Google Account (Popup)
+                  </button>
+                )}
               </div>
 
               <div className="flex justify-start items-center pt-2">
@@ -345,7 +430,7 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                   onClick={() => setStep('splash')}
                   className="text-xs text-slate-400 hover:text-white"
                 >
-                  ← Back
+                  ← Back to Welcome
                 </button>
               </div>
             </form>
@@ -365,10 +450,12 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
               
               {/* Pony Name */}
               <div className="sm:col-span-2">
-                <label className="text-slate-300 font-bold block mb-1">
+                <label htmlFor="onboard-pony-name" className="text-slate-300 font-bold block mb-1">
                   Pony Name *
                 </label>
                 <input
+                  id="onboard-pony-name"
+                  name="ponyName"
                   type="text"
                   required
                   placeholder="e.g. Twilight Sparkle, Rainbow Dash, Starfall..."
@@ -485,8 +572,10 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
 
               {/* Species */}
               <div>
-                <label className="text-slate-300 font-medium block mb-1">Species</label>
+                <label htmlFor="onboard-species" className="text-slate-300 font-medium block mb-1">Species</label>
                 <input
+                  id="onboard-species"
+                  name="species"
                   type="text"
                   placeholder="e.g. Alicorn, Pegasus, Unicorn, Earth Pony..."
                   value={species}
@@ -497,8 +586,10 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
 
               {/* Element / Affinity */}
               <div>
-                <label className="text-slate-300 font-medium block mb-1">Element / Affinity</label>
+                <label htmlFor="onboard-element" className="text-slate-300 font-medium block mb-1">Element / Affinity</label>
                 <input
+                  id="onboard-element"
+                  name="element"
                   type="text"
                   placeholder="e.g. Magic, Friendship, Loyalty, Laughter..."
                   value={element}
@@ -509,8 +600,10 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
 
               {/* Location / Country */}
               <div className="sm:col-span-2">
-                <label className="text-slate-300 font-medium block mb-1">Location / Country</label>
+                <label htmlFor="onboard-location" className="text-slate-300 font-medium block mb-1">Location / Country</label>
                 <input
+                  id="onboard-location"
+                  name="location"
                   type="text"
                   placeholder="e.g. Equestria, Canterlot, Cloudsdale, USA..."
                   value={location}
@@ -521,8 +614,10 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
 
               {/* Notes */}
               <div className="sm:col-span-2">
-                <label className="text-slate-300 font-medium block mb-1">Notes / Bio</label>
+                <label htmlFor="onboard-notes" className="text-slate-300 font-medium block mb-1">Notes / Bio</label>
                 <textarea
+                  id="onboard-notes"
+                  name="notes"
                   rows={2}
                   placeholder="Add a bio or notes about your pony..."
                   value={notes}
@@ -538,6 +633,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <input
+                    id="onboard-secret-species"
+                    name="secretSpecies"
                     type="text"
                     placeholder="Secret Species"
                     value={secretSpecies}
@@ -545,6 +642,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                     className="bg-slate-900 border border-purple-500/20 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-pink-500"
                   />
                   <input
+                    id="onboard-secret-element"
+                    name="secretElement"
                     type="text"
                     placeholder="Secret Element"
                     value={secretElement}
@@ -553,6 +652,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                   />
                 </div>
                 <input
+                  id="onboard-secret-notes"
+                  name="secretNotes"
                   type="text"
                   placeholder="Secret Notes"
                   value={secretNotes}
