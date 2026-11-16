@@ -1944,8 +1944,9 @@ export default function App() {
                                   try {
                                     const resized = await resizeImageToMax(file, 400, 400);
                                     handleUpdatePony({ ...pony, avatarIcon: resized });
-                                  } catch (err) {
+                                  } catch (err: any) {
                                     console.error(err);
+                                    alert(err?.message || 'Could not load selected image. Please try another image.');
                                   }
                                 }} 
                               />

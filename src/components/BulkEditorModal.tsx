@@ -291,8 +291,9 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                                         try {
                                           const resized = await resizeImageToMax(file, 400, 400);
                                           onUpdatePony({ ...pony, avatarIcon: resized });
-                                        } catch (err) {
+                                        } catch (err: any) {
                                           console.error(err);
+                                          alert(err?.message || 'Could not load selected image. Please try another image.');
                                         }
                                       }
                                     }} 

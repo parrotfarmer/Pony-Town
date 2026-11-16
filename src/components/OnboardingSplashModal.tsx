@@ -500,8 +500,9 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                                 try {
                                   const resized = await resizeImageToMax(file, 400, 400);
                                   setCropperRawImage(resized);
-                                } catch (err) {
+                                } catch (err: any) {
                                   console.error(err);
+                                  alert(err?.message || 'Could not load selected image. Please try another image.');
                                 }
                               }
                             }} 
@@ -552,8 +553,9 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                                 try {
                                   const resized = await resizeImageToMax(file, 400, 400);
                                   setCropperRawImage(resized);
-                                } catch (err) {
+                                } catch (err: any) {
                                   console.error(err);
+                                  alert(err?.message || 'Could not load selected image. Please try another image.');
                                 }
                               }
                             }}

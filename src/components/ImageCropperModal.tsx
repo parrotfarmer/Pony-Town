@@ -36,12 +36,23 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   useEffect(() => {
     if (imageSrc) {
       const img = new Image();
-      img.onload = () => {
-        setImgNaturalSize({ width: img.naturalWidth, height: img.naturalHeight });
+      const onLoad = () => {
+        setImgNaturalSize({
+          width: img.naturalWidth || img.width || 400,
+          height: img.naturalHeight || img.height || 400,
+        });
         setZoom(1);
         setPosition({ x: 0, y: 0 });
       };
+      img.onload = onLoad;
+      img.onerror = () => {
+        console.error('Failed to load image in ImageCropperModal');
+        setImgNaturalSize({ width: 400, height: 400 });
+      };
       img.src = imageSrc;
+      if (img.complete && (img.naturalWidth > 0 || img.width > 0)) {
+        onLoad();
+      }
     }
   }, [imageSrc]);
 
@@ -86,7 +97,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       // Crop calculation based on 250px preview viewport
       const viewportSize = 250;
       const baseScale = Math.min(viewportSize / imgNaturalSize.width, viewportSize / imgNaturalSize.height);
-      const effectiveScale = baseScale * zoom;
+      const effectiveScale = Math.max(0.001, baseScale * zoom);
 
       // Calculate origin offset in natural image coordinates
       const displayedWidth = imgNaturalSize.width * effectiveScale;
@@ -101,10 +112,15 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
       const imgTopLeftY = viewportCenterY - displayedHeight / 2 + position.y;
 
       // Crop box (viewport) in natural image coordinates
-      const cropX = Math.max(0, (0 - imgTopLeftX) / effectiveScale);
-      const cropY = Math.max(0, (0 - imgTopLeftY) / effectiveScale);
-      const cropW = Math.min(imgNaturalSize.width - cropX, viewportSize / effectiveScale);
-      const cropH = Math.min(imgNaturalSize.height - cropY, viewportSize / effectiveScale);
+      const rawCropX = (0 - imgTopLeftX) / effectiveScale;
+      const rawCropY = (0 - imgTopLeftY) / effectiveScale;
+      const rawCropW = viewportSize / effectiveScale;
+      const rawCropH = viewportSize / effectiveScale;
+
+      const cropX = Math.max(0, Math.min(imgNaturalSize.width - 1, rawCropX));
+      const cropY = Math.max(0, Math.min(imgNaturalSize.height - 1, rawCropY));
+      const cropW = Math.max(1, Math.min(imgNaturalSize.width - cropX, rawCropW));
+      const cropH = Math.max(1, Math.min(imgNaturalSize.height - cropY, rawCropH));
 
       const croppedDataUrl = await cropAndScaleImage(
         imageSrc,
@@ -120,9 +136,9 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
 
       onCropComplete(croppedDataUrl);
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to crop image:', err);
-      alert('Error cropping image. Please try another image.');
+      alert('Error cropping image: ' + (err?.message || 'Please try another image.'));
     } finally {
       setIsProcessing(false);
     }

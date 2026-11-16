@@ -108,36 +108,47 @@ export const Navbar: React.FC<NavbarProps> = ({
     });
   }, [ponies, searchQuery]);
 
+  const [isNarrowView, setIsNarrowView] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsNarrowView(window.innerWidth < 640);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <header 
-      className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur-xl border-b py-2 sm:py-2.5 shadow-xl"
+      className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur-xl border-b py-1.5 sm:py-2.5 shadow-xl"
       style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
     >
-      <div className="max-w-7xl w-full mx-auto px-4 lg:px-6 flex items-center justify-between gap-1.5 sm:gap-3 flex-wrap sm:flex-nowrap">
-        {/* Top Left: Global Instant Search Bar */}
-        <div className="flex-1 min-w-[140px] max-w-xs sm:max-w-sm flex items-center justify-start">
+      <div className="max-w-7xl w-full mx-auto px-2 sm:px-4 lg:px-6 flex items-center justify-between gap-1 sm:gap-2.5 flex-nowrap">
+        {/* Top Left: Responsive Search Bar (Shrinks dynamically on mobile to prevent any button overlap) */}
+        <div className="flex-1 min-w-[65px] xs:min-w-[90px] sm:min-w-[140px] max-w-[115px] xs:max-w-[160px] sm:max-w-xs md:max-w-sm shrink flex items-center justify-start">
           <div ref={searchContainerRef} className="relative w-full">
             <div className="relative flex items-center">
-              <Search className="absolute left-2.5 sm:left-3 w-3.5 h-3.5 sm:w-4 sm:h-4 pointer-events-none" style={{ color: theme.textColor }} />
+              <Search className="absolute left-2 sm:left-3 w-3 h-3 sm:w-4 sm:h-4 pointer-events-none" style={{ color: theme.textColor }} />
               <input
                 type="text"
-                placeholder="Search ponies..."
+                placeholder={isNarrowView ? "Search..." : "Search ponies..."}
                 value={searchQuery}
                 onFocus={() => setIsSearchFocused(true)}
                 onChange={(e) => {
                   onSearchChange(e.target.value);
                   setIsSearchFocused(true);
                 }}
-                className="w-full bg-slate-900 border rounded-xl pl-8 sm:pl-9 pr-7 sm:pr-8 py-1 sm:py-1.5 text-xs placeholder-slate-400 focus:outline-none transition-all shadow-inner theme-border-hover"
+                className="w-full bg-slate-900 border rounded-xl pl-6 sm:pl-9 pr-5 sm:pr-8 py-1 sm:py-1.5 text-[11px] sm:text-xs placeholder-slate-400 focus:outline-none transition-all shadow-inner theme-border-hover"
                 style={{ borderColor: theme.borderColor, color: theme.textColor }}
               />
               {searchQuery && (
                 <button
                   onClick={() => onSearchChange('')}
-                  className="absolute right-2 hover:opacity-100 opacity-70"
+                  className="absolute right-1.5 sm:right-2 hover:opacity-100 opacity-70"
                   style={{ color: theme.textColor }}
+                  aria-label="Clear search"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </button>
               )}
             </div>
@@ -145,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Autocomplete Dropdown */}
             {isSearchFocused && searchQuery.trim() && (
               <div 
-                className="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 border rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-md max-h-80 overflow-y-auto theme-border-hover"
+                className="absolute top-full left-0 mt-2 w-64 sm:w-72 md:w-80 max-w-[90vw] bg-slate-900/95 border rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-md max-h-80 overflow-y-auto theme-border-hover"
                 style={{ borderColor: theme.borderColor }}
               >
                 <div 
@@ -200,22 +211,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Far Right: User Account & Admin Control Buttons */}
-        <div className="shrink-0 sm:w-1/3 flex justify-end items-center gap-1 sm:gap-2">
+        {/* Far Right: User Account & Admin Control Buttons (Auto-sized, never clipped) */}
+        <div className="shrink-0 flex justify-end items-center gap-1 sm:gap-1.5 md:gap-2 ml-auto">
           {isAdmin && (
             <button
               onClick={onOpenAdminModal}
-              className="px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-md border transition-all cursor-pointer theme-border-hover"
+              className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl font-bold text-[11px] sm:text-xs shadow-md border transition-all cursor-pointer theme-border-hover shrink-0"
               style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
               title="Open Administration"
             >
-              <span>Administration</span>
+              <span className="hidden sm:inline">Administration</span>
+              <span className="sm:hidden">Admin</span>
             </button>
           )}
 
           <button
             onClick={onOpenRankings}
-            className="px-3.5 py-1.5 rounded-xl font-bold text-xs shadow transition-all cursor-pointer border theme-border-hover"
+            className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl font-bold text-[11px] sm:text-xs shadow transition-all cursor-pointer border theme-border-hover shrink-0"
             style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
             title="View Rankings"
           >
@@ -225,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {adminSettings.allowExchangeStore && (
             <button
               onClick={onOpenStore}
-              className="px-3.5 py-1.5 rounded-xl font-bold text-xs shadow transition-all cursor-pointer border theme-border-hover"
+              className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl font-bold text-[11px] sm:text-xs shadow transition-all cursor-pointer border theme-border-hover shrink-0"
               style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
               title="Open Status Exchange"
             >
@@ -234,7 +246,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
 
           {/* Settings Button (Available to All Users) */}
-          <div ref={settingsRef} className="relative">
+          <div ref={settingsRef} className="relative shrink-0">
             <button
               onClick={() => {
                 if (!isAdmin && user) {
@@ -243,11 +255,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setIsSettingsOpen(!isSettingsOpen);
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-md transition-all cursor-pointer border theme-border-hover"
+              className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold shadow-md transition-all cursor-pointer border theme-border-hover shrink-0"
               style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
               title="Settings"
             >
-              <Settings className="w-4 h-4" style={{ color: theme.buttonTextColor }} />
+              <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: theme.buttonTextColor }} />
               <span className="hidden sm:inline">Settings</span>
             </button>
 
@@ -386,7 +398,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               return (
                 <div
                   onClick={onOpenPersonalProfile}
-                  className="flex items-center gap-1.5 bg-slate-900 px-3 py-1.5 rounded-xl border text-xs cursor-pointer transition-all group theme-border-hover"
+                  className="flex items-center gap-1 sm:gap-1.5 bg-slate-900 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs cursor-pointer transition-all group theme-border-hover shrink-0"
                   style={{ borderColor: theme.borderColor }}
                   title="Click to view your personal pony profile"
                 >
@@ -412,10 +424,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                       e.stopPropagation();
                       logout();
                     }}
-                    className="ml-1 p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-red-400"
+                    className="p-0.5 sm:p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-red-400"
                     title="Sign Out"
                   >
-                    <LogOut className="w-3.5 h-3.5" />
+                    <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   </button>
                 </div>
               );
@@ -423,11 +435,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : (
             <button
               onClick={onOpenAuthModal}
-              className="px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-md border flex items-center gap-1.5 transition-all theme-border-hover cursor-pointer"
+              className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl font-bold text-[11px] sm:text-xs shadow-md border flex items-center gap-1 sm:gap-1.5 transition-all theme-border-hover cursor-pointer shrink-0"
               style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Sign In / Register</span>
+              <span className="hidden xs:inline">Sign In / Register</span>
+              <span className="xs:hidden">Sign In</span>
             </button>
           )}
         </div>

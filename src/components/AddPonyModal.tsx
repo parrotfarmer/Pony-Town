@@ -133,8 +133,9 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
     try {
       const resizedRaw = await resizeImageToMax(file, 400, 400);
       setCropperRawImage(resizedRaw);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Image load error:', err);
+      alert(err?.message || 'Could not load selected image. Please try another image.');
     }
   };
 

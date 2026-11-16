@@ -164,6 +164,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
   const [profileDraft, setProfileDraft] = useState(() => buildDraftFromPony(pony));
   const syncedPonyIdRef = useRef<string>(pony.id);
   const lastSyncedBaseRef = useRef(buildDraftFromPony(pony));
+  const profileDraftRef = useRef(profileDraft);
+  profileDraftRef.current = profileDraft;
   const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
@@ -179,14 +181,20 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     }
 
     const prevBase = lastSyncedBaseRef.current;
+    const currentDraft = profileDraftRef.current;
     const hasLocalUnsavedEdits = (Object.keys(prevBase) as Array<keyof typeof prevBase>).some(
-      (k) => (profileDraft[k] || '') !== (prevBase[k] || '')
+      (k) => (currentDraft[k] || '') !== (prevBase[k] || '')
     );
     lastSyncedBaseRef.current = nextBase;
     if (!hasLocalUnsavedEdits) {
-      setProfileDraft(nextBase);
+      const hasMeaningfulDifference = (Object.keys(nextBase) as Array<keyof typeof nextBase>).some(
+        (k) => (currentDraft[k] || '') !== (nextBase[k] || '')
+      );
+      if (hasMeaningfulDifference) {
+        setProfileDraft(nextBase);
+      }
     }
-  }, [pony, profileDraft]);
+  }, [pony]);
 
   useEffect(() => {
     if (!adminSettings.allowAvatarImageUpload && cropperRawImage) {
@@ -690,11 +698,12 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     e.target.value = '';
     if (!file) return;
     try {
-      // Resize image to max 400x400 before loading into cropper
+      // Resize & compress image to max 400x400 before loading into cropper
       const resizedRaw = await resizeImageToMax(file, 400, 400);
       setCropperRawImage(resizedRaw);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Image load error:', err);
+      setProfileNotice(err?.message || 'Could not load selected image. Please try another image.');
     }
   };
 
@@ -953,18 +962,22 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
-
-          <div className="space-y-2">
-          </div>
-
-
-
-
-
-
-
-
-          {/* Extended Profile Details */}
+          {profileNotice && (
+            <div
+              className="px-4 py-2.5 rounded-xl bg-slate-900 border border-purple-500/50 text-xs font-semibold flex items-center justify-between gap-2 shadow-lg animate-in fade-in duration-150"
+              style={{ color: theme.textColor }}
+            >
+              <span>{profileNotice}</span>
+              <button
+                type="button"
+                onClick={() => setProfileNotice(null)}
+                className="opacity-70 hover:opacity-100 text-xs p-1"
+                aria-label="Dismiss notice"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           <div 
             className="w-full bg-slate-950/40 p-4 rounded-xl border space-y-4 theme-border-hover backdrop-blur-sm"
             style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor }}
@@ -2028,9 +2041,25 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
         imageSrc={cropperRawImage}
         onClose={() => setCropperRawImage(null)}
         onCropComplete={(croppedDataUrl) => {
-          setProfileDraft((prev) => ({ ...prev, avatarIcon: croppedDataUrl }));
+          const nextDraft = { ...profileDraft, avatarIcon: croppedDataUrl };
+          setProfileDraft(nextDraft);
           setCropperRawImage(null);
-          setProfileNotice('Custom avatar ready — click Save Profile or Save & Close to save.');
+          if (canEditProfileFields) {
+            const nextTimestamp = !isAdmin && isPonyOwner ? new Date().toISOString() : pony.lastProfileUpdateAt;
+            const updatedPony: PonyNode = {
+              ...pony,
+              ...nextDraft,
+              name: (nextDraft.name || '').trim() || pony.name,
+              avatarIcon: croppedDataUrl,
+              lastProfileUpdateAt: nextTimestamp,
+            };
+            lastSyncedBaseRef.current = buildDraftFromPony(updatedPony);
+            onUpdatePony(updatedPony);
+            setNowMs(Date.now());
+            setProfileNotice('Avatar image uploaded and saved successfully!');
+          } else {
+            setProfileNotice('Custom avatar ready — click Save Profile or Save & Close to save.');
+          }
         }}
         title={`Crop & Zoom ${pony.name}'s Avatar`}
         outputWidth={400}
