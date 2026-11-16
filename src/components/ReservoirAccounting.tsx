@@ -48,8 +48,6 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
     totalTreats,
     netDaily,
     netAccumulated,
-    totalNetworkDailyRate,
-    surplusNonOwnedLove,
   } = useMemo(() => {
     // 1. Full Network Metrics
     const metrics = calculateScopedMetrics(
@@ -69,7 +67,6 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
     const flowStats = calculateLoveFlowStats(ponies, targetDate, statuses, connections, livePulseTick);
     let inflowDaily = 0;
     let inflowAccum = 0;
-    let networkDailyRate = 0;
     let storePurchases = 0;
     let treatsSum = 0;
 
@@ -77,7 +74,6 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
       .map((stat) => {
         const p = stat.pony;
         const daily = stat.dailyProduced;
-        networkDailyRate += daily;
         storePurchases += p.totalLoveSpent || 0;
         treatsSum += p.treatsReceived || 0;
 
@@ -142,8 +138,6 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
       totalTreats: treatsSum,
       netDaily: nDaily,
       netAccumulated: nAccum,
-      totalNetworkDailyRate: networkDailyRate,
-      surplusNonOwnedLove: Math.max(0, Math.round(nAccum)),
     };
   }, [ponies, connections, loveToPowerRatio, targetDate, statuses, livePulseTick, archivedLove, reservoirDeductions]);
 
@@ -152,7 +146,7 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
       className="bg-slate-900/80 border rounded-2xl p-5 shadow-2xl backdrop-blur-md space-y-6 theme-border-hover"
       style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
     >
-      {/* Title & Surplus Badge */}
+      {/* Title */}
       <div 
         className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b"
         style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
@@ -160,22 +154,6 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
         <h2 className="text-xl font-black tracking-tight" style={{ color: theme.textColor }}>
           Accounting
         </h2>
-
-        {/* Small Box: Surplus Non-Owned Love & Network Daily Rate */}
-        <div 
-          className="flex items-center gap-4 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border text-xs"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
-        >
-          <div>
-            <span className="opacity-70 text-[10px] block uppercase font-bold">Surplus Non-Owned Love</span>
-            <span className="font-extrabold text-sm">{surplusNonOwnedLove.toLocaleString()} Love</span>
-          </div>
-          <div className="w-[1px] h-6 bg-slate-800" />
-          <div>
-            <span className="opacity-70 text-[10px] block uppercase font-bold">Network Daily Rate</span>
-            <span className="font-extrabold text-sm">+{Math.round(totalNetworkDailyRate).toLocaleString()} L/d</span>
-          </div>
-        </div>
       </div>
 
       {/* 4 Core Network Metrics Cards (Love Rate, Total Love, Total Overall Love, Magic Power) */}
@@ -254,7 +232,7 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
       </div>
 
       {/* Reservoir Flow Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div 
           className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
           style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
@@ -296,7 +274,22 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
             +{Math.round(netDaily).toLocaleString()} <span className="text-xs font-normal opacity-60">L/d</span>
           </div>
           <div className="text-xs opacity-80" style={{ color: theme.textColor }}>
-            {Math.round(netAccumulated).toLocaleString()} current reservoir level
+            Net daily balance rate
+          </div>
+        </div>
+
+        <div 
+          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
+          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+        >
+          <div className="flex items-center gap-2 mb-1" style={{ color: theme.textColor }}>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Reservoir Level</span>
+          </div>
+          <div className="text-xl font-black" style={{ color: theme.textColor }}>
+            {Math.round(netAccumulated).toLocaleString()} <span className="text-xs font-normal opacity-60">Love</span>
+          </div>
+          <div className="text-xs opacity-80" style={{ color: theme.textColor }}>
+            Current reservoir level
           </div>
         </div>
       </div>
@@ -357,12 +350,7 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
                   {storePurchasesInflow > 0 && (
                     <tr className="bg-slate-900/60 font-bold">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded bg-amber-500/20 flex items-center justify-center text-amber-500 text-[10px]">
-                            🛒
-                          </div>
-                          <div style={{ color: theme.textColor }}>Exchange Purchases (All Ponies)</div>
-                        </div>
+                        <div style={{ color: theme.textColor }}>Exchange Purchases (All Ponies)</div>
                       </td>
                       <td className="px-4 py-3 text-right" style={{ color: theme.textColor }}>-</td>
                       <td className="px-4 py-3 text-right" style={{ color: theme.textColor }}>

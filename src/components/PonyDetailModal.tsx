@@ -77,6 +77,7 @@ interface PonyDetailModalProps {
   livePulseTick?: number;
   onOpenAdminPopup?: (type: any, title: string, message: string, confirmLabel: string, onConfirm: (val?: any) => void, entityName?: string) => void;
   onNavigateToPony: (id: string) => void;
+  onDeletePony?: (ponyId: string) => void;
 }
 
 export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
@@ -101,6 +102,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
   livePulseTick = 0,
   onOpenAdminPopup,
   onNavigateToPony,
+  onDeletePony,
 }) => {
   if (!pony) return null;
 
@@ -155,7 +157,6 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     secretHobby: p.secretHobby || '',
     secretPersonality: p.secretPersonality || '',
     secretMagicalAffinity: p.secretMagicalAffinity || '',
-    secretFriendshipLevel: p.secretFriendshipLevel || '',
     secretCutieMark: p.secretCutieMark || '',
     secretBackstory: p.secretBackstory || '',
     secretNotes: p.secretNotes || '',
@@ -799,50 +800,25 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   </label>
                 )}
 
-                {canEditProfileFields && adminSettings.allowAvatarImageUpload && !isEditingAvatarIcon && (
-                  <span
-                    className="pointer-events-none absolute -bottom-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center shadow-md"
-                    style={{
-                      backgroundColor: theme.buttonColor,
-                      color: theme.buttonTextColor,
-                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
-                    }}
-                  >
-                    <Upload className="w-2.5 h-2.5" />
-                  </span>
-                )}
-              </div>
-
-              {canEditProfileFields && adminSettings.allowAvatarImageUpload && (
-                <div className="flex flex-col gap-1 shrink-0">
-                  <label
-                    className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-bold cursor-pointer hover:opacity-90 transition-all shadow-sm"
-                    style={{
-                      backgroundColor: theme.buttonColor,
-                      color: theme.buttonTextColor,
-                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
-                    }}
-                    title="Upload custom image for your pony's profile icon"
-                  >
-                    <Upload className="w-3 h-3" />
-                    <span>Upload Image</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
-                  </label>
+                {canEditProfileFields && !isEditingAvatarIcon && (
                   <button
                     type="button"
-                    onClick={() => setIsEditingAvatarIcon((prev) => !prev)}
-                    className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-lg bg-slate-900 border text-[10px] font-semibold cursor-pointer hover:bg-slate-800 transition-colors"
-                    style={{
-                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
-                      color: theme.textColor,
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsEditingAvatarIcon((prev) => !prev);
                     }}
-                    title="Type an emoji or emoticon instead"
+                    className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center shadow-md cursor-pointer hover:scale-110 transition-transform z-20"
+                    style={{
+                      backgroundColor: theme.buttonColor,
+                      color: theme.buttonTextColor,
+                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                    }}
+                    title="Edit emoticon"
                   >
                     <Smile className="w-2.5 h-2.5" />
-                    <span>Emoji</span>
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             <div className="flex-1 min-w-0 space-y-1">
@@ -1600,17 +1576,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                         style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
                       />
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Friendship Level</label>
-                      <input
-                        type="text"
-                        disabled={!canEditProfileFields}
-                        value={profileDraft.secretFriendshipLevel}
-                        onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretFriendshipLevel: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
-                      />
-                    </div>
+
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Cutie Mark</label>
                       <input
@@ -2033,6 +1999,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
         onClose={() => setIsOwnedPoniesModalOpen(false)}
         ownedPonies={ownedPoniesList}
         onSelectPony={(id) => onNavigateToPony(id)}
+        isOwner={isPonyOwner}
+        onDeletePony={onDeletePony}
       />
 
       {/* Image Cropper Modal */}

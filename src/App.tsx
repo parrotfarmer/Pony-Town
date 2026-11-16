@@ -2251,6 +2251,7 @@ export default function App() {
           allPonies={ponies}
           onCreateConnection={handleCreateConnection}
           onDeleteConnection={handleDeleteConnection}
+          onDeletePony={handleDeletePony}
           onUpdateConnection={handleUpdateConnection}
           targetDate={targetDate}
           statuses={statusesWithBadgePages}
