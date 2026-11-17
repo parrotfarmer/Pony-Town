@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CustomStatus, PonyNode } from '../types/pony';
-import { X, Check, Lock, AlertCircle, Sparkles, Shield, Palette, Plus, Eye } from 'lucide-react';
+import { X, Check, Lock, AlertCircle, Plus, Eye } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { BadgeSpecialPageModal } from './BadgeSpecialPageModal';
@@ -76,6 +76,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
   onAddToReservoir,
 }) => {
   const { theme, storeBorders, addStoreBorder, unlockStoreItems, adminSettings, updateAdminSettings } = useSettings();
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'ranks' | 'borders' | 'perks'>('ranks');
 
@@ -291,18 +292,18 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-lg bg-slate-900 border rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 theme-border-hover"
-        style={{ borderColor: theme.borderColor }}
+        className="relative w-full max-w-lg border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
+        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
       >
         
         {/* Header */}
         <div 
-          className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b bg-slate-950/80 gap-2 flex-wrap sm:flex-nowrap"
-          style={{ borderColor: theme.borderColor }}
+          className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b gap-2 flex-wrap sm:flex-nowrap"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div>
-            <h2 className="text-base font-bold text-white">Love Exchange</h2>
-            <span className="text-xs font-semibold" style={{ color: theme.textColor }}>
+            <h2 className="text-base font-bold" style={{ color: theme.textColor }}>Love Exchange</h2>
+            <span className="text-xs font-semibold opacity-80" style={{ color: theme.textColor }}>
               Spendable Balance: {currentLove.toLocaleString()} Love
             </span>
           </div>
@@ -311,8 +312,8 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
             {/* Border Preview Box */}
             {selectedBorderForPreview && (
               <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl border-2 shadow-[0_0_15px_rgba(0,0,0,0.5)] animate-pulse shrink-0 bg-slate-900"
-                style={{ borderColor: theme.borderColor }}
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl border-2 shadow-[0_0_15px_rgba(0,0,0,0.5)] animate-pulse shrink-0"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                 title={`Preview: ${selectedBorderForPreview.name}`}
               >
                 {pony.avatarIcon && (pony.avatarIcon.startsWith('data:image') || pony.avatarIcon.startsWith('http')) ? (
@@ -325,7 +326,8 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
             
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+              className="p-1.5 rounded-lg border hover:opacity-80 cursor-pointer transition-opacity"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
             >
               <X className="w-4 h-4" />
             </button>
@@ -334,16 +336,16 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
 
         {/* Tab Selection */}
         <div 
-          className="flex border-b bg-slate-950/40 px-6 pt-3 gap-2"
-          style={{ borderColor: theme.borderColor }}
+          className="flex border-b px-6 pt-3 gap-2"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <button
             type="button"
             onClick={() => setActiveTab('ranks')}
-            className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 ${
+            className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
               activeTab === 'ranks'
-                ? 'border-white opacity-100'
-                : 'border-transparent opacity-60 hover:opacity-90'
+                ? 'opacity-100'
+                : 'opacity-60 hover:opacity-90'
             }`}
             style={{ color: theme.textColor, borderColor: activeTab === 'ranks' ? theme.textColor : 'transparent' }}
           >
@@ -354,10 +356,10 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('borders')}
-              className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 ${
+              className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
                 activeTab === 'borders'
-                  ? 'border-white opacity-100'
-                  : 'border-transparent opacity-60 hover:opacity-90'
+                  ? 'opacity-100'
+                  : 'opacity-60 hover:opacity-90'
               }`}
               style={{ color: theme.textColor, borderColor: activeTab === 'borders' ? theme.textColor : 'transparent' }}
             >
@@ -368,10 +370,10 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('perks')}
-            className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 ${
+            className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
               activeTab === 'perks'
-                ? 'border-white opacity-100'
-                : 'border-transparent opacity-60 hover:opacity-90'
+                ? 'opacity-100'
+                : 'opacity-60 hover:opacity-90'
             }`}
             style={{ color: theme.textColor, borderColor: activeTab === 'perks' ? theme.textColor : 'transparent' }}
           >
@@ -395,25 +397,28 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
             {sortedStatuses.map((s, idx) => {
               const owned = isOwnedStatus(s);
               const isCurrent = pony.status === s.id || pony.status === s.name;
-              const isNextToBuy = idx === nextUnpurchasedIndex;
               const isHiddenFuture = nextUnpurchasedIndex !== -1 && idx > nextUnpurchasedIndex;
 
               if (isHiddenFuture) {
                 return (
                   <div
                     key={s.id}
-                    className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-950/40 flex items-center justify-between gap-3 opacity-60"
+                    className="p-3.5 rounded-xl border flex items-center justify-between gap-3 opacity-60"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500">
+                      <div
+                        className="w-9 h-9 rounded-xl border flex items-center justify-center opacity-70"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                      >
                         <Lock className="w-4 h-4" />
                       </div>
                       <div>
-                        <strong className="text-slate-400 text-xs block">Locked Rank</strong>
+                        <strong className="text-xs block opacity-80" style={{ color: theme.textColor }}>Locked Rank</strong>
                       </div>
                     </div>
 
-                    <span className="text-[11px] text-slate-600 font-semibold px-2 py-1">
+                    <span className="text-[11px] opacity-60 font-semibold px-2 py-1" style={{ color: theme.textColor }}>
                       Locked
                     </span>
                   </div>
@@ -426,8 +431,8 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
               return (
                 <div
                   key={s.id}
-                  className="p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all bg-slate-950/60 theme-border-hover"
-                  style={{ borderColor: theme.borderColor }}
+                  className="p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
@@ -442,7 +447,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                     </div>
                     <div className="min-w-0">
                       <strong className="text-xs block truncate leading-tight" style={{ color: theme.textColor }}>{s.name}</strong>
-                      <span className="text-[11px] font-bold" style={{ color: theme.textColor }}>
+                      <span className="text-[11px] font-bold opacity-80" style={{ color: theme.textColor }}>
                         {s.multiplier}x Multiplier
                       </span>
                     </div>
@@ -453,14 +458,14 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedBadgeForPageId(s.id)}
-                        className={`relative p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border transition-all cursor-pointer ${
+                        className={`relative p-1.5 rounded-lg border hover:opacity-80 transition-all cursor-pointer ${
                           !isAcceptedStatus(s) ? 'ring-1 ring-amber-400/70' : ''
                         }`}
-                        style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                       >
                         <Eye className="w-3.5 h-3.5" />
                         {!isAcceptedStatus(s) && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-slate-950" />
+                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400" />
                         )}
                       </button>
                     )}
@@ -476,7 +481,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                           type="button"
                           onClick={() => handleSwitchActiveStatus(s)}
                           className="px-3 py-1.5 rounded-lg font-bold text-xs border cursor-pointer theme-border-hover min-w-[80px] text-center"
-                          style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                          style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                         >
                           Switch
                         </button>
@@ -489,7 +494,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                         onClick={() => handlePurchaseStatus(s)}
                         disabled={!canAfford}
                         className="px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all shadow border cursor-pointer theme-border-hover disabled:opacity-50 min-w-[80px] text-center"
-                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                       >
                         {cost > 0 ? `${cost} Love` : 'Free'}
                       </button>
@@ -515,13 +520,13 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                     type="button"
                     onClick={() => setShowAddBorderForm(true)}
                     className="w-full py-2 rounded-xl border border-dashed flex items-center justify-center gap-1.5 font-bold text-xs cursor-pointer theme-border-hover"
-                    style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                    style={{ borderColor: effectiveBorderColor, color: theme.textColor }}
                   >
                     <Plus className="w-4 h-4" />
                     Admin: Add Custom Profile Border to Exchange
                   </button>
                 ) : (
-                  <div className="p-3 bg-slate-950 rounded-xl border space-y-2" style={{ borderColor: theme.borderColor }}>
+                  <div className="p-3 rounded-xl border space-y-2" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                     <div className="text-xs font-bold" style={{ color: theme.textColor }}>Create New Profile Border</div>
                     <div className="grid grid-cols-2 gap-2">
                       <input
@@ -529,16 +534,16 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                         placeholder="Border Name"
                         value={newBorderName}
                         onChange={(e) => setNewBorderName(e.target.value)}
-                        className="bg-slate-900 border rounded-lg px-2.5 py-1 text-xs focus:outline-none"
-                        style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                        className="border rounded-lg px-2.5 py-1 text-xs focus:outline-none"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                       />
                       <input
                         type="number"
                         placeholder="Price (Love)"
                         value={newBorderPrice}
                         onChange={(e) => setNewBorderPrice(Number(e.target.value))}
-                        className="bg-slate-900 border rounded-lg px-2.5 py-1 text-xs focus:outline-none"
-                        style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                        className="border rounded-lg px-2.5 py-1 text-xs focus:outline-none"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                       />
                       <div className="flex items-center gap-1.5">
                         <input
@@ -546,8 +551,8 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                           placeholder="Icon (Emoji)"
                           value={newBorderIcon && newBorderIcon.startsWith('data:image') ? '🖼️' : newBorderIcon}
                           onChange={(e) => setNewBorderIcon(e.target.value)}
-                          className="flex-1 bg-slate-900 border rounded-lg px-2.5 py-1 text-xs focus:outline-none"
-                          style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                          className="flex-1 border rounded-lg px-2.5 py-1 text-xs focus:outline-none"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                         />
                         <label className="cursor-pointer">
                           <input
@@ -566,7 +571,12 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                               }
                             }}
                           />
-                          <span className="text-[10px] bg-slate-800 px-2 py-1 rounded hover:bg-slate-700 border border-slate-700">Img</span>
+                          <span
+                            className="text-[10px] px-2 py-1 rounded border hover:opacity-80 transition-opacity"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                          >
+                            Img
+                          </span>
                         </label>
                       </div>
                       <input
@@ -580,15 +590,16 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setShowAddBorderForm(false)}
-                        className="px-3 py-1 rounded-lg bg-slate-800 text-xs"
+                        className="px-3 py-1 rounded-lg border text-xs hover:opacity-80 cursor-pointer"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                       >
                         Cancel
                       </button>
                       <button
                         type="button"
                         onClick={handleAdminAddBorder}
-                        className="px-3 py-1 rounded-lg font-bold text-xs"
-                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor }}
+                        className="px-3 py-1 rounded-lg border font-bold text-xs cursor-pointer"
+                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                       >
                         Save Border
                       </button>
@@ -606,8 +617,8 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
               return (
                 <div
                   key={b.id}
-                  className="p-3.5 rounded-xl border flex items-center justify-between gap-3 bg-slate-950/60 theme-border-hover"
-                  style={{ borderColor: theme.borderColor }}
+                  className="p-3.5 rounded-xl border flex items-center justify-between gap-3 theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                 >
                   <div 
                     className="flex items-center gap-3 min-w-0 cursor-pointer group"
@@ -615,7 +626,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                   >
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 border-2 font-bold shadow-lg overflow-hidden transition-transform ${selectedBorderForPreview?.id === b.id ? 'scale-110 ring-2 ring-white/20' : 'group-hover:scale-105'}`}
-                      style={{ borderColor: theme.borderColor, backgroundColor: `${theme.borderColor}20` }}
+                      style={{ borderColor: effectiveBorderColor, backgroundColor: `${theme.borderColor}20` }}
                     >
                       {b.icon && (b.icon.startsWith('data:image') || b.icon.startsWith('http')) ? (
                         <img src={b.icon} alt={b.name} className="w-full h-full object-cover" />
@@ -633,7 +644,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                       <button
                         type="button"
                         onClick={() => handleEquipBorder(null)}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold"
+                        className="px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-bold cursor-pointer"
                       >
                         Equipped
                       </button>
@@ -642,7 +653,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                         type="button"
                         onClick={() => handleEquipBorder(b.id)}
                         className="px-3 py-1.5 rounded-lg font-bold text-xs border cursor-pointer theme-border-hover min-w-[80px] text-center"
-                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                       >
                         Equip
                       </button>
@@ -652,7 +663,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                         onClick={() => setConfirmingPurchase({ type: 'border', item: b })}
                         disabled={!canAfford}
                         className="px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all border cursor-pointer theme-border-hover disabled:opacity-50 min-w-[80px] text-center"
-                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                       >
                         {b.price} Love
                       </button>
@@ -680,16 +691,16 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
               return (
                 <div
                   key={perk.id}
-                  className="p-3.5 rounded-xl border flex items-center justify-between gap-3 bg-slate-950/60 theme-border-hover"
-                  style={{ borderColor: theme.borderColor }}
+                  className="p-3.5 rounded-xl border flex items-center justify-between gap-3 theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 border flex items-center justify-center text-xl flex-shrink-0" style={{ borderColor: theme.borderColor }}>
+                    <div className="w-10 h-10 rounded-xl border flex items-center justify-center text-xl flex-shrink-0" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                       {perk.icon}
                     </div>
                     <div className="min-w-0">
                       <strong className="text-xs block truncate leading-tight" style={{ color: theme.textColor }}>{perk.name}</strong>
-                      <span className="text-[11px] opacity-70 block">{perk.description}</span>
+                      <span className="text-[11px] opacity-70 block" style={{ color: theme.textColor }}>{perk.description}</span>
                     </div>
                   </div>
 
@@ -711,8 +722,8 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                               },
                             });
                           }}
-                          className="w-16 bg-slate-900 border rounded px-1.5 py-1 text-center font-bold text-xs"
-                          style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                          className="w-16 border rounded px-1.5 py-1 text-center font-bold text-xs"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                         />
                         <span className="opacity-60 text-[10px]" style={{ color: theme.textColor }}>Love</span>
                       </div>
@@ -729,7 +740,7 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                         onClick={() => setConfirmingPurchase({ type: 'perk', item: perkWithPrice })}
                         disabled={!canAfford}
                         className="px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all border cursor-pointer theme-border-hover disabled:opacity-50 min-w-[80px] text-center"
-                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                        style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                       >
                         {price} Love
                       </button>
@@ -747,13 +758,13 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
 
         {/* Footer */}
         <div 
-          className="px-6 py-3 bg-slate-950 border-t flex justify-end"
-          style={{ borderColor: theme.borderColor }}
+          className="px-6 py-3 border-t flex justify-end"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl font-bold text-xs border cursor-pointer theme-border-hover"
-            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
           >
             Close
           </button>
@@ -763,17 +774,21 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
       {/* Purchase Confirmation Overlay */}
       {confirmingPurchase && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+          <div
+            className="border rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+          >
             <div className="text-center space-y-2">
-              <h3 className="text-lg font-bold text-white">Confirm Purchase</h3>
-              <p className="text-sm text-slate-400">
+              <h3 className="text-lg font-bold" style={{ color: theme.textColor }}>Confirm Purchase</h3>
+              <p className="text-sm opacity-75" style={{ color: theme.textColor }}>
                 Are you sure you want to purchase <strong>{confirmingPurchase.item.name}</strong> for <strong>{confirmingPurchase.item.price} Love</strong>?
               </p>
             </div>
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setConfirmingPurchase(null)}
-                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm transition-all"
+                className="flex-1 py-2 rounded-xl border hover:opacity-80 font-bold text-sm transition-all cursor-pointer"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 Cancel
               </button>
@@ -783,8 +798,8 @@ export const StatusStoreModal: React.FC<StatusStoreModalProps> = ({
                   else if (confirmingPurchase.type === 'border') handlePurchaseBorder(confirmingPurchase.item);
                   else if (confirmingPurchase.type === 'perk') handlePurchasePerk(confirmingPurchase.item);
                 }}
-                className="flex-1 py-2 rounded-xl text-white font-bold text-sm shadow-lg transition-all"
-                style={{ backgroundColor: theme.buttonColor }}
+                className="flex-1 py-2 rounded-xl border font-bold text-sm shadow-lg transition-all cursor-pointer"
+                style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
               >
                 Confirm
               </button>

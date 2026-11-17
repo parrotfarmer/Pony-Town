@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { formatAuthError } from '../utils/authErrors';
-import { X, LogIn, UserPlus, Sparkles, CheckCircle2, AlertCircle, KeyRound, Mail, ArrowLeft } from 'lucide-react';
+import { X, LogIn, UserPlus, CheckCircle2, AlertCircle, KeyRound, Mail, ArrowLeft } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -81,26 +81,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-md bg-slate-900 border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
-        style={{ borderColor: theme.borderColor }}
+        className="relative w-full max-w-md border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
+        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
       >
         
         {/* Header */}
         <div 
-          className="flex items-center justify-between px-6 py-4 border-b bg-slate-950/60"
-          style={{ borderColor: theme.borderColor }}
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-slate-800 border" style={{ borderColor: theme.borderColor, color: theme.textColor }}>
-              {mode === 'forgot_password' ? (
-                <KeyRound className="w-5 h-5 text-pink-400" />
-              ) : (
-                <Sparkles className="w-5 h-5" />
-              )}
-            </div>
+            {mode === 'forgot_password' && (
+              <div className="p-2 rounded-xl border" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.buttonColor }}>
+                <KeyRound className="w-5 h-5" />
+              </div>
+            )}
             <div>
               <h2 className="text-base font-bold" style={{ color: theme.textColor }}>
                 {mode === 'signin' 
@@ -109,16 +109,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     ? 'Create Account' 
                     : 'Reset Password'}
               </h2>
-              <p className="text-xs text-slate-400">
-                {mode === 'signin' 
-                  ? 'Access your saved pony network state' 
-                  : mode === 'register' 
-                    ? 'Register a new account' 
-                    : 'Firebase will send a secure reset link to your email'}
-              </p>
+              {mode === 'forgot_password' && (
+                <p className="text-xs opacity-70" style={{ color: theme.textColor }}>
+                  Firebase will send a secure reset link to your email
+                </p>
+              )}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg border transition-opacity hover:opacity-80 cursor-pointer"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -126,17 +128,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         {/* Tab Switcher (only for signin / register) */}
         {mode !== 'forgot_password' && (
           <div 
-            className="grid grid-cols-2 bg-slate-950 p-1 border-b text-xs"
-            style={{ borderColor: theme.borderColor }}
+            className="grid grid-cols-2 p-1 border-b text-xs"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
           >
             <button
               type="button"
               onClick={() => { setMode('signin'); setErrorMsg(null); setSuccessMsg(null); }}
-              className="py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border"
+              className="py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border cursor-pointer"
               style={mode === 'signin' ? {
                 backgroundColor: theme.buttonColor,
                 color: theme.buttonTextColor,
-                borderColor: theme.borderColor
+                borderColor: effectiveBorderColor
               } : {
                 borderColor: 'transparent',
                 color: theme.textColor,
@@ -149,11 +151,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <button
               type="button"
               onClick={() => { setMode('register'); setErrorMsg(null); setSuccessMsg(null); }}
-              className="py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border"
+              className="py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border cursor-pointer"
               style={mode === 'register' ? {
                 backgroundColor: theme.buttonColor,
                 color: theme.buttonTextColor,
-                borderColor: theme.borderColor
+                borderColor: effectiveBorderColor
               } : {
                 borderColor: 'transparent',
                 color: theme.textColor,
@@ -191,11 +193,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 autoComplete="name"
                 type="text"
                 required
-                placeholder="e.g. Celestia Steward"
+                placeholder=""
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 text-white focus:outline-none"
-                style={{ borderColor: theme.borderColor }}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
           )}
@@ -208,11 +210,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               autoComplete="email"
               type="email"
               required
-              placeholder="you@example.com"
+              placeholder=""
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-950 border rounded-lg px-3 py-2 text-white focus:outline-none"
-              style={{ borderColor: theme.borderColor }}
+              className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
             />
           </div>
 
@@ -228,7 +230,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                       setErrorMsg(null);
                       setSuccessMsg(null);
                     }}
-                    className="text-[11px] text-pink-400 hover:text-pink-300 transition-colors"
+                    className="text-[11px] hover:underline transition-colors cursor-pointer"
+                    style={{ color: theme.buttonColor }}
                   >
                     Forgot password?
                   </button>
@@ -240,11 +243,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder=""
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 text-white focus:outline-none"
-                style={{ borderColor: theme.borderColor }}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
           )}
@@ -254,11 +257,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 rounded-xl font-bold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 border transition-all hover:opacity-90"
+              className="w-full py-2.5 rounded-xl font-bold shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 border transition-all hover:opacity-90 cursor-pointer theme-border-hover"
               style={{
                 backgroundColor: theme.buttonColor,
                 color: theme.buttonTextColor,
-                borderColor: theme.borderColor
+                borderColor: effectiveBorderColor
               }}
             >
               {isSubmitting ? (
@@ -289,8 +292,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
-                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border flex items-center justify-center gap-1.5 transition-all"
-                style={{ borderColor: theme.borderColor }}
+                className="w-full py-2 rounded-xl font-semibold border flex items-center justify-center gap-1.5 transition-all hover:opacity-80 cursor-pointer theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back to Sign In</span>
@@ -299,9 +302,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               <>
                 <div className="relative my-3 text-center">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t" style={{ borderColor: theme.borderColor }} />
+                    <div className="w-full border-t" style={{ borderColor: effectiveBorderColor }} />
                   </div>
-                  <span className="relative bg-slate-900 px-2 text-[10px] uppercase tracking-wider" style={{ color: theme.textColor, opacity: 0.7 }}>
+                  <span className="relative px-2 text-[10px] uppercase tracking-wider" style={{ backgroundColor: theme.bgColor, color: theme.textColor, opacity: 0.7 }}>
                     Or Continue With
                   </span>
                 </div>
@@ -310,8 +313,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={isSubmitting}
-                  className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
-                  style={{ borderColor: theme.borderColor }}
+                  className="w-full py-2 rounded-xl font-medium border flex items-center justify-center gap-2 transition-all hover:opacity-80 cursor-pointer shadow-md theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useSettings, DEFAULT_THEME, ThemeSettings } from '../context/SettingsContext';
-import { X, Palette, Image as ImageIcon, RotateCcw, Upload, Check, Sparkles, Bookmark, Trash2, Save, Lock } from 'lucide-react';
+import { useSettings, ThemeSettings } from '../context/SettingsContext';
+import { X, RotateCcw, Check, Trash2, Save, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PonyNode } from '../types/pony';
 
@@ -38,10 +38,18 @@ const SavedThemesSection: React.FC<SavedThemesSectionProps> = ({ isUnlocked }) =
     setNewThemeName('');
   };
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
+
   return (
-    <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-3 mt-4">
+    <div
+      className="p-4 rounded-xl border space-y-3 mt-4"
+      style={{
+        backgroundColor: theme.bgColor,
+        borderColor: effectiveBorderColor,
+      }}
+    >
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+        <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textColor }}>
           Saved Custom Themes
         </h3>
         {!isUnlocked && <LockIndicator />}
@@ -55,13 +63,22 @@ const SavedThemesSection: React.FC<SavedThemesSectionProps> = ({ isUnlocked }) =
             placeholder="Name your theme..."
             value={newThemeName}
             onChange={(e) => setNewThemeName(e.target.value)}
-            className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500"
+            className="flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none"
+            style={{
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
+              color: theme.textColor,
+            }}
           />
           <button
             type="submit"
             disabled={!isUnlocked}
-            className="px-3.5 py-2 rounded-xl text-white font-bold text-xs shadow flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-            style={{ backgroundColor: theme.buttonColor || '#db2777' }}
+            className="px-3.5 py-2 rounded-xl font-bold text-xs border shadow flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            style={{
+              backgroundColor: theme.buttonColor || '#db2777',
+              color: theme.buttonTextColor || '#ffffff',
+              borderColor: effectiveBorderColor,
+            }}
           >
             <Save className="w-3.5 h-3.5" />
             Save Current Theme
@@ -73,7 +90,11 @@ const SavedThemesSection: React.FC<SavedThemesSectionProps> = ({ isUnlocked }) =
             {savedThemes.map((st) => (
               <div
                 key={st.id}
-                className="p-2.5 rounded-xl border border-slate-800 bg-slate-900 flex items-center justify-between gap-3"
+                className="p-2.5 rounded-xl border flex items-center justify-between gap-3"
+                style={{
+                  backgroundColor: theme.bgColor,
+                  borderColor: effectiveBorderColor,
+                }}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="flex items-center gap-1">
@@ -81,21 +102,26 @@ const SavedThemesSection: React.FC<SavedThemesSectionProps> = ({ isUnlocked }) =
                     <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: st.theme.borderColor }} />
                     <span className="w-3.5 h-3.5 rounded-full border border-white/20" style={{ backgroundColor: st.theme.buttonColor }} />
                   </div>
-                  <span className="font-bold text-xs text-slate-200 truncate">{st.name}</span>
+                  <span className="font-bold text-xs truncate" style={{ color: theme.textColor }}>{st.name}</span>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => applySavedTheme(st.theme)}
-                    className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                    className="px-2.5 py-1 rounded-lg text-xs font-bold border hover:opacity-80 cursor-pointer"
+                    style={{
+                      backgroundColor: theme.buttonColor,
+                      color: theme.buttonTextColor,
+                      borderColor: effectiveBorderColor,
+                    }}
                   >
                     Apply
                   </button>
                   <button
                     type="button"
                     onClick={() => deleteSavedTheme(st.id)}
-                    className="p-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40"
+                    className="p-1 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 cursor-pointer"
                     title="Delete saved theme"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -105,7 +131,7 @@ const SavedThemesSection: React.FC<SavedThemesSectionProps> = ({ isUnlocked }) =
             ))}
           </div>
         ) : (
-          <p className="text-[11px] text-slate-400 italic pt-1">No custom themes saved yet.</p>
+          <p className="text-[11px] opacity-60 italic pt-1" style={{ color: theme.textColor }}>No custom themes saved yet.</p>
         )}
       </div>
     </div>
@@ -346,11 +372,12 @@ const ColorPickerField: React.FC<ColorPickerFieldProps> = ({
       </div>
 
       <div 
-        className={`flex items-center gap-2.5 bg-slate-900/90 hover:bg-slate-800/90 p-2 rounded-xl border transition-all ${
+        className={`flex items-center gap-2.5 p-2 rounded-xl border transition-all ${
           !isUnlocked ? 'opacity-50 pointer-events-none' : ''
         }`}
         style={{
-          borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}40` : '#334155'),
+          backgroundColor: theme.bgColor,
+          borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor || '#334155'),
         }}
         title={!isUnlocked ? "Unlock in the Exchange" : undefined}
       >
@@ -378,7 +405,8 @@ const ColorPickerField: React.FC<ColorPickerFieldProps> = ({
           disabled={!isUnlocked}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-transparent text-slate-200 font-mono text-xs focus:outline-none uppercase tracking-wide"
+          className="flex-1 bg-transparent font-mono text-xs focus:outline-none uppercase tracking-wide"
+          style={{ color: theme.textColor }}
           placeholder="#HEX"
         />
       </div>
@@ -546,24 +574,41 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
     updateTheme({ networkBgImage: '' });
   };
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : (theme.borderColor || '#a855f7');
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-lg bg-slate-900 border rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100"
-        style={{ borderColor: theme.borderColor || '#a855f7' }}
+        className="relative w-full max-w-lg border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        style={{
+          backgroundColor: theme.bgColor,
+          color: theme.textColor,
+          borderColor: effectiveBorderColor,
+        }}
       >
         
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/80">
+        <div
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{
+            backgroundColor: theme.bgColor,
+            borderColor: effectiveBorderColor,
+          }}
+        >
           <div className="flex items-center gap-2.5">
             <div>
-              <h2 className="text-base font-bold text-white">Settings</h2>
+              <h2 className="text-base font-bold" style={{ color: theme.textColor }}>Settings</h2>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+            className="p-1.5 rounded-lg border hover:opacity-80 cursor-pointer"
+            style={{
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
+              color: theme.textColor,
+            }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -573,16 +618,22 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
         <div className="p-6 space-y-6 overflow-y-auto max-h-[75vh] text-xs">
 
           {/* Section 1: Pony Network Custom Background Image */}
-          <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-3">
+          <div
+            className="p-4 rounded-xl border space-y-3"
+            style={{
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
+            }}
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textColor }}>
                 Pony Network Background Image
               </h3>
               {!hasBgImagePerk && <LockIndicator />}
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] text-slate-400 block">
+              <label className="text-[11px] opacity-75 block" style={{ color: theme.textColor }}>
                 Upload or paste a custom background image for the network web view:
               </label>
 
@@ -592,20 +643,36 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
                   placeholder="https://example.com/background.jpg"
                   value={bgInputUrl}
                   onChange={(e) => setBgInputUrl(e.target.value)}
-                  className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-pink-500"
+                  className="flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none"
+                  style={{
+                    backgroundColor: theme.bgColor,
+                    borderColor: effectiveBorderColor,
+                    color: theme.textColor,
+                  }}
                 />
                 <button
                   type="button"
                   onClick={handleApplyUrl}
-                  className="px-3 py-2 rounded-xl text-white font-bold text-xs shadow transition-all cursor-pointer"
-                  style={{ backgroundColor: theme.buttonColor || '#db2777' }}
+                  className="px-3 py-2 rounded-xl font-bold text-xs border shadow transition-all cursor-pointer"
+                  style={{
+                    backgroundColor: theme.buttonColor || '#db2777',
+                    color: theme.buttonTextColor || '#ffffff',
+                    borderColor: effectiveBorderColor,
+                  }}
                 >
                   Apply
                 </button>
               </div>
 
               <div className="flex items-center gap-3 pt-1">
-                <label className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 transition-all ${!hasBgImagePerk ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}>
+                <label
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-semibold border transition-all hover:opacity-80 ${!hasBgImagePerk ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
+                  style={{
+                    backgroundColor: theme.bgColor,
+                    color: theme.textColor,
+                    borderColor: effectiveBorderColor,
+                  }}
+                >
                   <span>Upload Image File</span>
                   <input type="file" disabled={!hasBgImagePerk} accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </label>
@@ -614,7 +681,7 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
                   <button
                     type="button"
                     onClick={handleClearImage}
-                    className="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 font-semibold border border-red-800/40"
+                    className="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 text-red-300 font-semibold border border-red-800/40 cursor-pointer"
                   >
                     Remove Image
                   </button>
@@ -622,7 +689,7 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
               </div>
 
               {theme.networkBgImage && (
-                <div className="mt-2 relative rounded-xl overflow-hidden h-24 border border-slate-800">
+                <div className="mt-2 relative rounded-xl overflow-hidden h-24 border" style={{ borderColor: effectiveBorderColor }}>
                   <img src={theme.networkBgImage} alt="Background preview" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-[11px] text-white font-bold">
                     Network Background Active
@@ -633,12 +700,11 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
           </div>
 
           {/* Section 2: Global Color Pickers */}
-          {/* Section 2: Global Color Pickers */}
           <div 
             className="p-4 rounded-xl border space-y-4"
             style={{ 
-              backgroundColor: 'rgba(2, 6, 23, 0.6)',
-              borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}40` : '#1e293b') 
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
             }}
           >
             <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.textColor }}>
@@ -703,30 +769,32 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
             {/* Border Transparency Options */}
             <div 
               className="pt-2 border-t grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs"
-              style={{ borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}30` : '#334155') }}
+              style={{ borderColor: effectiveBorderColor }}
             >
               <label 
-                className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900/80 border cursor-pointer hover:border-slate-700 select-none"
-                style={{ borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}30` : '#334155') }}
+                className="flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer select-none hover:opacity-90"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <input
                   type="checkbox"
                   checked={!!theme.transparentMapBorder}
                   onChange={(e) => updateTheme({ transparentMapBorder: e.target.checked })}
-                  className="w-4 h-4 rounded text-pink-500 accent-pink-500"
+                  className="w-4 h-4 rounded"
+                  style={{ accentColor: theme.buttonColor }}
                 />
                 <span className="font-semibold" style={{ color: theme.textColor }}>Transparent map border</span>
               </label>
 
               <label 
-                className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900/80 border cursor-pointer hover:border-slate-700 select-none"
-                style={{ borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}30` : '#334155') }}
+                className="flex items-center gap-2.5 p-2 rounded-xl border cursor-pointer select-none hover:opacity-90"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <input
                   type="checkbox"
                   checked={!!theme.transparentAllBorders}
                   onChange={(e) => updateTheme({ transparentAllBorders: e.target.checked })}
-                  className="w-4 h-4 rounded text-pink-500 accent-pink-500"
+                  className="w-4 h-4 rounded"
+                  style={{ accentColor: theme.buttonColor }}
                 />
                 <span className="font-semibold" style={{ color: theme.textColor }}>Transparent all borders</span>
               </label>
@@ -738,8 +806,8 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
             <div 
               className="p-4 rounded-xl border space-y-3"
               style={{ 
-                backgroundColor: 'rgba(2, 6, 23, 0.6)',
-                borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}40` : '#1e293b') 
+                backgroundColor: theme.bgColor,
+                borderColor: effectiveBorderColor,
               }}
             >
               <div className="flex items-center justify-between">
@@ -755,7 +823,12 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
                         customData: { ...(targetActivePony.customData || {}), equippedBorder: '' },
                       })
                     }
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-lg border hover:opacity-80 cursor-pointer"
+                    style={{
+                      backgroundColor: theme.bgColor,
+                      color: theme.textColor,
+                      borderColor: effectiveBorderColor,
+                    }}
                   >
                     Unequip
                   </button>
@@ -783,12 +856,13 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
                       }}
                       title={!isUnlocked ? 'Unlock in the Exchange' : b.description || b.name}
                       className={`relative flex items-center gap-2 p-2 rounded-xl border text-left transition-all ${
-                        isUnlocked ? 'cursor-pointer hover:bg-slate-800/80' : 'opacity-50 cursor-not-allowed'
-                      } ${isEquipped ? 'bg-slate-800 shadow-md' : 'bg-slate-900/90'}`}
+                        isUnlocked ? 'cursor-pointer hover:opacity-90' : 'opacity-50 cursor-not-allowed'
+                      } ${isEquipped ? 'shadow-md' : ''}`}
                       style={{
+                        backgroundColor: isEquipped ? `${theme.buttonColor}25` : theme.bgColor,
                         borderColor: isEquipped
                           ? (theme.borderHoverColor || theme.buttonColor || '#ec4899')
-                          : (theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}40` : '#334155')),
+                          : effectiveBorderColor,
                         boxShadow: isEquipped ? `0 0 0 1px ${theme.borderHoverColor || theme.buttonColor || '#ec4899'}` : undefined,
                       }}
                     >
@@ -816,8 +890,8 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
           <div 
             className="p-4 rounded-xl border space-y-4"
             style={{ 
-              backgroundColor: 'rgba(2, 6, 23, 0.6)',
-              borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}40` : '#1e293b') 
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
             }}
           >
             <div className="flex items-center justify-between">
@@ -870,8 +944,8 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
           <div 
             className="p-4 rounded-xl border space-y-4"
             style={{ 
-              backgroundColor: 'rgba(2, 6, 23, 0.6)',
-              borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}40` : '#1e293b') 
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
             }}
           >
             <div className="flex items-center justify-between">
@@ -956,8 +1030,8 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
           <div 
             className="p-4 rounded-xl border space-y-3"
             style={{ 
-              backgroundColor: 'rgba(2, 6, 23, 0.6)',
-              borderColor: theme.transparentAllBorders ? 'transparent' : (theme.borderColor ? `${theme.borderColor}40` : '#1e293b') 
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
             }}
           >
             <div className="flex items-center justify-between">
@@ -1045,11 +1119,22 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
+        <div
+          className="px-6 py-4 border-t flex items-center justify-between"
+          style={{
+            backgroundColor: theme.bgColor,
+            borderColor: effectiveBorderColor,
+          }}
+        >
           <button
             type="button"
             onClick={resetTheme}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 hover:opacity-80 cursor-pointer"
+            style={{
+              backgroundColor: theme.bgColor,
+              color: theme.textColor,
+              borderColor: effectiveBorderColor,
+            }}
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Reset to Default
@@ -1058,8 +1143,12 @@ const ThemeSettingsModalContent: React.FC<ThemeSettingsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-1.5 rounded-xl text-white font-bold text-xs shadow-md transition-all cursor-pointer"
-            style={{ backgroundColor: theme.buttonColor || '#db2777' }}
+            className="px-5 py-1.5 rounded-xl font-bold text-xs border shadow-md transition-all cursor-pointer"
+            style={{
+              backgroundColor: theme.buttonColor || '#db2777',
+              color: theme.buttonTextColor || '#ffffff',
+              borderColor: effectiveBorderColor,
+            }}
           >
             Save & Close
           </button>

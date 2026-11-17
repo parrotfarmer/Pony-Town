@@ -1,7 +1,6 @@
 import { 
   PonyNode, 
   WebConnection, 
-  NetworkMetrics, 
   HarvestTimePoint, 
   CustomStatus,
   PonyLoveFlowStats,
@@ -111,23 +110,6 @@ export function getSortedStatuses(statuses: CustomStatus[] = []): CustomStatus[]
     if (priceDiff !== 0) return priceDiff;
     return (a.multiplier || 0) - (b.multiplier || 0);
   });
-}
-
-export function isStatusOwnedByPony(
-  pony: PonyNode,
-  status: CustomStatus,
-  allowExchangeStore: boolean
-): boolean {
-  if (!allowExchangeStore) return true;
-  const purchased = pony.purchasedBadges || [];
-  return (
-    purchased.includes(status.id) ||
-    (status.badgeIcon ? purchased.includes(status.badgeIcon) : false) ||
-    pony.status === status.id ||
-    pony.status === status.name ||
-    !status.price ||
-    status.price === 0
-  );
 }
 
 export function getPonyStatusMultiplier(pony: PonyNode, statuses?: CustomStatus[]): number {
@@ -541,100 +523,6 @@ export const calculateScopedMetrics = memoizeByRef(function calculateScopedMetri
   };
 });
 
-export const calculateNetworkMetrics = memoizeByRef(function calculateNetworkMetricsImpl(
-  ponies: PonyNode[],
-  connections: WebConnection[],
-  _loveToPowerRatio: number = 3.5,
-  targetDate: string = new Date().toISOString().split('T')[0],
-  statuses?: CustomStatus[],
-  liveTick?: number
-): NetworkMetrics {
-  const totalPonies = ponies.length;
-  const totalConnections = connections.length;
-
-  if (totalPonies === 0) {
-    return {
-      totalPonies: 0,
-      totalConnections: 0,
-      totalLovePerDay: 0,
-      totalSpendableLove: 0,
-      totalOverallLove: 0,
-      totalMagicalPower: 0,
-      networkResonanceBonus: 1.0,
-      averageYieldPerPony: 0,
-      highestYieldPony: null,
-      topRecipientPony: null,
-    };
-  }
-
-  const { adjMap } = buildConnectionIndex(connections);
-  let totalLovePerDay = 0;
-  let totalOverallLove = 0;
-  let totalSpendableLove = 0;
-  let highestYieldPony: { name: string; rate: number } | null = null;
-
-  const receivedMap = new Map<string, { daily: number; total: number }>();
-  const ponyMap = new Map<string, PonyNode>();
-
-  for (let i = 0; i < ponies.length; i++) {
-    const pony = ponies[i];
-    ponyMap.set(pony.id, pony);
-    const dailyRate = calculatePonyDailyRate(pony, statuses);
-    const overall = pony.totalOverallLove || calculatePonyAccumulatedLove(pony, targetDate, statuses, liveTick);
-    const spendable = pony.currentLoveTotal !== undefined ? pony.currentLoveTotal : (overall - (pony.totalLoveSpent || 0));
-
-    totalLovePerDay += dailyRate;
-    totalOverallLove += overall;
-    totalSpendableLove += spendable;
-
-    if (!highestYieldPony || dailyRate > highestYieldPony.rate) {
-      highestYieldPony = { name: pony.name, rate: dailyRate };
-    }
-
-    const splits = getNormalizedPonySplitsWithConnectedSet(pony, dailyRate, adjMap.get(pony.id) || new Set<string>());
-    for (let j = 0; j < splits.length; j++) {
-      const split = splits[j];
-      const ratio = dailyRate > 0 ? split.amount / dailyRate : 0;
-      const accumSent = Math.round(overall * ratio);
-      const current = receivedMap.get(split.recipientId) || { daily: 0, total: 0 };
-      receivedMap.set(split.recipientId, {
-        daily: current.daily + split.amount,
-        total: current.total + accumSent,
-      });
-    }
-  }
-
-  let topRecipientPony: { name: string; icon: string; receivedDaily: number; totalReceived: number } | null = null;
-
-  receivedMap.forEach((val, recipientId) => {
-    const recPony = ponyMap.get(recipientId);
-    if (recPony && (!topRecipientPony || val.daily > topRecipientPony.receivedDaily)) {
-      topRecipientPony = {
-        name: recPony.name,
-        icon: recPony.avatarIcon,
-        receivedDaily: val.daily,
-        totalReceived: val.total,
-      };
-    }
-  });
-
-  const totalMagicalPower = Math.round(totalOverallLove); // 1 love = 1 thaum
-  const averageYieldPerPony = Number((totalLovePerDay / totalPonies).toFixed(1));
-
-  return {
-    totalPonies,
-    totalConnections,
-    totalLovePerDay: Math.round(totalLovePerDay),
-    totalSpendableLove: Math.round(totalSpendableLove),
-    totalOverallLove: Math.round(totalOverallLove),
-    totalMagicalPower,
-    networkResonanceBonus: 1.0,
-    averageYieldPerPony,
-    highestYieldPony,
-    topRecipientPony,
-  };
-});
-
 export const generateHarvestTimeline = memoizeByRef(function generateHarvestTimelineImpl(
   ponies: PonyNode[],
   connections: WebConnection[],
@@ -829,19 +717,6 @@ export function formatThaumPower(thaums: number): { value: string; unit: string;
   if (abs >= 1e6)  return { value: (thaums / 1e6).toFixed(2),  unit: 'Mega-Thaums', full: `${(thaums / 1e6).toFixed(2)} Mega-Thaums` };
   if (abs >= 1e3)  return { value: (thaums / 1e3).toFixed(2),  unit: 'Kilo-Thaums', full: `${(thaums / 1e3).toFixed(2)} Kilo-Thaums` };
   return { value: thaums.toLocaleString(), unit: 'Thaums', full: `${thaums.toLocaleString()} Thaums` };
-}
-
-export function formatLoveNumber(num: number): string {
-  if (num >= 1_000_000_000) {
-    return (num / 1_000_000_000).toFixed(2) + 'B';
-  }
-  if (num >= 1_000_000) {
-    return (num / 1_000_000).toFixed(2) + 'M';
-  }
-  if (num >= 1_000) {
-    return (num / 1_000).toFixed(1) + 'K';
-  }
-  return num.toLocaleString();
 }
 
 export type PonySortKey =

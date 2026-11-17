@@ -1,47 +1,19 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { PonyNode, WebConnection, ConnectionType, CustomStatus, LoveSplitAllocation } from '../types/pony';
+import { PonyNode, WebConnection, ConnectionType, CustomStatus } from '../types/pony';
 import { 
-  calculateDaysActive, 
   calculatePonyDailyRate, 
   calculatePonyAccumulatedLove, 
-  getNormalizedPonySplits, 
   calculateLoveFlowStats,
   generateHarvestTimeline,
-  formatLoveNumber,
   hasMagicAndAccountingAccess,
   getUserMainPony,
   getSortedStatuses
 } from '../utils/calculations';
 import { 
   X, 
-  Sparkles, 
-  Calendar, 
-  Link2, 
-  Unlink, 
-  Plus, 
-  Trash2, 
-  ArrowRight,
-  PieChart,
-  AlertCircle,
-  Tag,
-  Activity,
-  FileText,
   Gift,
-  Award,
-  ShoppingBag,
-  Coins,
-  Check,
-  Zap,
   Upload,
-  User,
-  Coffee,
-  Palette,
   Smile,
-  Book,
-  Wand2,
-  Users,
-  Lock,
-  RotateCcw,
   Clock
 } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
@@ -52,7 +24,6 @@ import { ConnectedPoniesModal } from './ConnectedPoniesModal';
 import { OwnedPoniesModal } from './OwnedPoniesModal';
 import { ImageCropperModal } from './ImageCropperModal';
 import { PonyAvatar } from './PonyAvatar';
-import { PonySelector } from './PonySelector';
 import { resizeImageToMax } from '../utils/imageUtils';
 
 interface PonyDetailModalProps {
@@ -63,7 +34,6 @@ interface PonyDetailModalProps {
   allPonies: PonyNode[];
   onCreateConnection: (sourceId: string, targetId: string, type?: ConnectionType) => void;
   onDeleteConnection: (connId: string) => void;
-  onUpdateConnection?: (updatedConn: WebConnection) => void;
   targetDate: string;
   statuses: CustomStatus[];
   onUpdateStatuses?: (updated: CustomStatus[]) => void;
@@ -73,7 +43,6 @@ interface PonyDetailModalProps {
   onGiveTreat?: (ponyId: string, amount: number) => void;
   onUpdatePayout?: (ponyId: string, percentage: number) => void;
   onTogglePonyAdmin?: (ponyId: string, isAppAdmin: boolean) => void;
-  reservoirDeductions?: number;
   livePulseTick?: number;
   onOpenAdminPopup?: (type: any, title: string, message: string, confirmLabel: string, onConfirm: (val?: any) => void, entityName?: string) => void;
   onNavigateToPony: (id: string) => void;
@@ -88,7 +57,6 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
   allPonies,
   onCreateConnection,
   onDeleteConnection,
-  onUpdateConnection,
   targetDate,
   statuses,
   onUpdateStatuses,
@@ -98,7 +66,6 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
   onGiveTreat,
   onUpdatePayout,
   onTogglePonyAdmin,
-  reservoirDeductions = 0,
   livePulseTick = 0,
   onOpenAdminPopup,
   onNavigateToPony,
@@ -109,13 +76,10 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
   const { theme, adminSettings, dailyFreeGifts, recordDailyFreeGift } = useSettings();
   const { user } = useAuth();
   
-  const [newKey, setNewKey] = useState('');
-  const [newVal, setNewVal] = useState('');
   const [targetPonyToConnect, setTargetPonyToConnect] = useState('');
-  const [connTypeToCreate, setConnTypeToCreate] = useState<ConnectionType>('friendship');
+  const [connTypeToCreate] = useState<ConnectionType>('friendship');
   const [ponySearchQuery, setPonySearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const [customGiftAmount, setCustomGiftAmount] = useState<number>(50);
   const [giftSuccessMsg, setGiftSuccessMsg] = useState<string | null>(null);
 
   // 2-Step Gift Popup Modal states
@@ -209,14 +173,6 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     }
   }, [adminSettings.allowExchangeStore, isStoreOpen]);
 
-  // Split allocation inputs
-  const [newSplitRecipientId, setNewSplitRecipientId] = useState('');
-  const [newSplitAmount, setNewSplitAmount] = useState<number>(50);
-
-  // Relationship Disconnect confirmation state
-  const [disconnectingConnId, setDisconnectingConnId] = useState<string | null>(null);
-  const [disconnectCheckboxChecked, setDisconnectCheckboxChecked] = useState<boolean>(false);
-
   const activeViewerPony = isSimulatingNonAdmin
     ? allPonies.find(p => p.id === currentUserPonyId)
     : (user ? getUserMainPony(allPonies, user.uid) : null);
@@ -238,21 +194,6 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
       pony.id
     );
   }, [allPonies, connections, targetDate, statuses, pony, canSeeMagicAndAccounting]);
-
-  // Check for purchased perks (all unlocked automatically when Exchange is disabled)
-  const hasPerk = (perkId: 'textColor' | 'borderColor' | 'bgImage') => {
-    if (!adminSettings.allowExchangeStore) return true;
-    try {
-      const perks: string[] = JSON.parse(pony.customData?.purchasedPerks || '[]');
-      return perks.includes(perkId);
-    } catch {
-      return false;
-    }
-  };
-
-  const hasTextColorPerk = hasPerk('textColor');
-  const hasBorderColorPerk = hasPerk('borderColor');
-  const hasBgImagePerk = hasPerk('bgImage');
 
   const profileTheme = {
     textColor: pony.profileTextColor || theme.textColor,
@@ -391,9 +332,6 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     activeViewerPony && (pony.allowedViewerPonyIds || []).includes(activeViewerPony.id)
   );
 
-  const canSeeIdentity = isAdmin || isPonyOwner;
-
-  const daysActive = calculateDaysActive(pony.startDate, targetDate, pony.customDaysOverride);
   const dailyTotalProduced = currentPonyFlowStats?.dailyProduced ?? calculatePonyDailyRate(pony, statuses);
   const totalProduced = currentPonyFlowStats?.totalProduced ?? calculatePonyAccumulatedLove(pony, targetDate, statuses, livePulseTick);
   const dailyIncomeReceived = currentPonyFlowStats?.dailyReceived ?? 0;
@@ -408,12 +346,6 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
   const viewerTotalOverallLove = activeViewerPony ? ((activeViewerPony.totalOverallLove ?? 0) + (activeViewerPony.treatsReceived || 0)) : 0;
   const viewerTotalLoveSpent = activeViewerPony ? (activeViewerPony.totalLoveSpent || 0) : 0;
   const viewerCurrentLove = activeViewerPony ? (activeViewerPony.currentLoveTotal !== undefined ? activeViewerPony.currentLoveTotal : Math.max(0, viewerTotalOverallLove - viewerTotalLoveSpent)) : 0;
-
-  // 50% automatically goes to general fund, remaining 50% is available for pony allocations
-  const allocatableCapacity = Math.round(dailyTotalProduced / 2);
-  const currentSplits = getNormalizedPonySplits(pony, statuses, connections);
-  const totalAllocated = currentSplits.reduce((sum, s) => sum + s.amount, 0);
-  const remainingAllocation = Math.max(0, allocatableCapacity - totalAllocated);
 
   // Today's date string for daily gift tracking (resets at midnight)
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -582,111 +514,6 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     );
   }, [allPonies, pony.id, existingConnectedIds, ponySearchQuery]);
 
-  // Available ponies to add to split (that are not self)
-  const availableSplitRecipients = allPonies.filter((p) => p.id !== pony.id);
-
-  // Handlers for Splits
-  const handleAddSplit = () => {
-    if (!newSplitRecipientId) return;
-    const requested = Number(newSplitAmount) || 0;
-    if (requested <= 0) return;
-
-    // Enforce allocatable capacity limit
-    const allowed = Math.min(requested, remainingAllocation);
-    if (allowed <= 0) {
-      alert(`Cannot exceed allocatable capacity of ${allocatableCapacity} Love/day. Free up allocations first.`);
-      return;
-    }
-
-    const existingIndex = (pony.loveSplits || []).findIndex(s => s.recipientId === newSplitRecipientId);
-    let updatedSplits: LoveSplitAllocation[];
-
-    if (existingIndex >= 0) {
-      updatedSplits = (pony.loveSplits || []).map((s, idx) =>
-        idx === existingIndex ? { ...s, amount: Math.min(allocatableCapacity, s.amount + allowed) } : s
-      );
-    } else {
-      updatedSplits = [...(pony.loveSplits || []), { recipientId: newSplitRecipientId, amount: allowed }];
-    }
-
-    // Auto-create connection link between them if not already connected
-    onCreateConnection(pony.id, newSplitRecipientId, 'love-channel');
-
-    onUpdatePony({
-      ...pony,
-      loveSplits: updatedSplits,
-      isCustomSplits: true,
-      targetRecipientId: updatedSplits[0]?.recipientId || null,
-    });
-
-    setNewSplitRecipientId('');
-    setNewSplitAmount(Math.max(10, remainingAllocation - allowed));
-  };
-
-  const handleUpdateSplitAmount = (recipientId: string, newAmount: number) => {
-    const otherAllocations = currentSplits
-      .filter(s => s.recipientId !== recipientId)
-      .reduce((sum, s) => sum + s.amount, 0);
-    const maxAllowed = Math.max(0, allocatableCapacity - otherAllocations);
-    const clampedAmount = Math.max(0, Math.min(maxAllowed, newAmount));
-
-    const updated = (pony.loveSplits || []).map(s =>
-      s.recipientId === recipientId ? { ...s, amount: clampedAmount } : s
-    );
-
-    // If new split was not in loveSplits yet (e.g. came from auto-split), add it
-    if (!updated.some(s => s.recipientId === recipientId)) {
-      updated.push({ recipientId, amount: clampedAmount });
-    }
-
-    onUpdatePony({
-      ...pony,
-      loveSplits: updated,
-      isCustomSplits: true,
-    });
-  };
-
-  const handleRemoveSplit = (recipientId: string) => {
-    const updated = (pony.loveSplits || []).filter(s => s.recipientId !== recipientId);
-    onUpdatePony({
-      ...pony,
-      loveSplits: updated,
-      isCustomSplits: true,
-      targetRecipientId: updated[0]?.recipientId || null,
-    });
-  };
-
-  const handleSplitEvenly = () => {
-    if (currentSplits.length === 0) return;
-    
-    let updated: LoveSplitAllocation[];
-    if (currentSplits.length === 1) {
-      // If only one, they receive the full allocation
-      updated = [{ recipientId: currentSplits[0].recipientId, amount: allocatableCapacity }];
-    } else {
-      const share = Math.floor(allocatableCapacity / currentSplits.length);
-      updated = currentSplits.map((s, i) => ({
-        ...s,
-        amount: i === currentSplits.length - 1 ? allocatableCapacity - share * (currentSplits.length - 1) : share,
-      }));
-    }
-
-    onUpdatePony({
-      ...pony,
-      loveSplits: updated,
-      isCustomSplits: true,
-    });
-  };
-
-  const handleResetToAutoSplits = () => {
-    onUpdatePony({
-      ...pony,
-      isCustomSplits: false,
-      loveSplits: undefined,
-      targetRecipientId: null,
-    });
-  };
-
   const handleConnect = () => {
     if (!targetPonyToConnect) return;
     onCreateConnection(pony.id, targetPonyToConnect, connTypeToCreate);
@@ -708,13 +535,16 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
     }
   };
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div 
         className="relative w-full max-w-4xl max-h-[92vh] border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover transition-colors"
         style={{ 
-          borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor,
-          backgroundColor: profileTheme.bgImage ? 'transparent' : '#0f172a',
+          borderColor: effectiveBorderColor,
+          backgroundColor: profileTheme.bgImage ? 'transparent' : theme.bgColor,
+          color: profileTheme.textColor,
         }}
       >
         {profileTheme.bgImage && (
@@ -730,8 +560,11 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
         
         {/* Profile Header */}
         <div 
-          className="relative z-10 flex items-center justify-between px-6 py-5 border-b bg-slate-950/60 backdrop-blur-md"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor }}
+          className="relative z-10 flex items-center justify-between px-6 py-5 border-b backdrop-blur-md"
+          style={{
+            backgroundColor: profileTheme.bgImage ? 'transparent' : theme.bgColor,
+            borderColor: effectiveBorderColor,
+          }}
         >
           <div className="flex items-center gap-4 flex-1 min-w-0 mr-4">
             <div className="flex items-center gap-3 shrink-0">
@@ -776,8 +609,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                       }
                     }}
                     placeholder="🦄"
-                    className="w-14 h-14 rounded-2xl bg-slate-900 border-2 text-center text-base font-bold focus:outline-none shadow-sm"
-                    style={{ borderColor: theme.borderHoverColor || theme.borderColor, color: theme.textColor }}
+                    className="w-14 h-14 rounded-2xl border-2 text-center text-base font-bold focus:outline-none shadow-sm"
+                    style={{ backgroundColor: theme.bgColor, borderColor: theme.borderHoverColor || theme.borderColor, color: theme.textColor }}
                     aria-label="Edit profile emoticon"
                   />
                 ) : (
@@ -855,15 +688,16 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                       <>
                         {adminSettings.allowMainPonySelection && (
                           <label 
-                            className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold px-2 py-1 rounded-lg bg-slate-900 border transition-colors theme-border-hover"
+                            className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold px-2 py-1 rounded-lg border transition-colors theme-border-hover"
                             title="Makes this your main pony shown on your profile and avatar across the app"
-                            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                           >
                             <input
                               type="checkbox"
                               checked={!!pony.isMainPony}
                               onChange={(e) => onUpdatePony({ ...pony, isMainPony: e.target.checked })}
-                              className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-pink-500 focus:ring-pink-500 cursor-pointer"
+                              className="w-3.5 h-3.5 rounded cursor-pointer"
+                              style={{ accentColor: theme.buttonColor }}
                             />
                             <span>Main Pony</span>
                           </label>
@@ -875,7 +709,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                           style={{
                             backgroundColor: theme.buttonColor,
                             color: theme.buttonTextColor,
-                            borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                            borderColor: effectiveBorderColor,
                           }}
                           title="Click to view all your owned ponies"
                         >
@@ -897,8 +731,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                       if (!isInteractive) {
                         return (
                           <div
-                            className="relative p-1.5 bg-purple-950/60 border rounded-xl text-lg flex items-center justify-center shrink-0 shadow cursor-default select-none"
-                            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                            className="relative p-1.5 border rounded-xl text-lg flex items-center justify-center shrink-0 shadow cursor-default select-none"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                           >
                             {badgeVisual}
                           </div>
@@ -912,12 +746,12 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                             setSelectedBadgeStatusId(mostRecentBadge.id);
                             setIsBadgeModalOpen(true);
                           }}
-                          className={`relative p-1.5 bg-purple-950/60 border rounded-xl text-lg flex items-center justify-center shrink-0 shadow transition-all cursor-pointer ${!isAccepted ? 'ring-1 ring-amber-400/70' : ''}`}
-                          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                          className={`relative p-1.5 border rounded-xl text-lg flex items-center justify-center shrink-0 shadow transition-all cursor-pointer ${!isAccepted ? 'ring-1 ring-amber-400/70' : ''}`}
+                          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                         >
                           {badgeVisual}
                           {!isAccepted && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border border-slate-950" />
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border border-black/40" />
                           )}
                         </button>
                       );
@@ -930,7 +764,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+            className="p-2 rounded-lg border hover:opacity-80 cursor-pointer"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
           >
             <X className="w-5 h-5" />
           </button>
@@ -940,14 +775,14 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
           {profileNotice && (
             <div
-              className="px-4 py-2.5 rounded-xl bg-slate-900 border border-purple-500/50 text-xs font-semibold flex items-center justify-between gap-2 shadow-lg animate-in fade-in duration-150"
-              style={{ color: theme.textColor }}
+              className="px-4 py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-between gap-2 shadow-lg animate-in fade-in duration-150"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
             >
               <span>{profileNotice}</span>
               <button
                 type="button"
                 onClick={() => setProfileNotice(null)}
-                className="opacity-70 hover:opacity-100 text-xs p-1"
+                className="opacity-70 hover:opacity-100 text-xs p-1 cursor-pointer"
                 aria-label="Dismiss notice"
               >
                 <X className="w-3.5 h-3.5" />
@@ -955,8 +790,11 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             </div>
           )}
           <div 
-            className="w-full bg-slate-950/40 p-4 rounded-xl border space-y-4 theme-border-hover backdrop-blur-sm"
-            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor }}
+            className="w-full p-4 rounded-xl border space-y-4 theme-border-hover backdrop-blur-sm"
+            style={{
+              backgroundColor: profileTheme.bgImage ? 'transparent' : theme.bgColor,
+              borderColor: effectiveBorderColor,
+            }}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: profileTheme.textColor }}>
@@ -979,7 +817,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                       style={{
                         backgroundColor: theme.buttonColor,
                         color: theme.buttonTextColor,
-                        borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                        borderColor: effectiveBorderColor,
                       }}
                     >
                       Save Profile
@@ -990,7 +828,10 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             </div>
 
             {profileNotice && (
-              <div className="px-3 py-2 rounded-lg bg-slate-900 border border-purple-500/30 text-[11px] font-semibold" style={{ color: theme.textColor }}>
+              <div
+                className="px-3 py-2 rounded-lg border text-[11px] font-semibold"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+              >
                 {profileNotice}
               </div>
             )}
@@ -998,7 +839,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* Species */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                   Species
                 </label>
                 {canEditProfileFields ? (
@@ -1006,18 +847,18 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     type="text"
                     value={profileDraft.species}
                     onChange={(e) => setProfileDraft((prev) => ({ ...prev, species: e.target.value }))}
-                    className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     placeholder=""
                   />
                 ) : (
-                  <div className="text-xs px-1" style={{ color: theme.textColor }}>{pony.species || 'Unknown'}</div>
+                  <div className="text-xs px-1" style={{ color: profileTheme.textColor }}>{pony.species || 'Unknown'}</div>
                 )}
               </div>
 
               {/* Element */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                   Element
                 </label>
                 {canEditProfileFields ? (
@@ -1025,18 +866,18 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     type="text"
                     value={profileDraft.element}
                     onChange={(e) => setProfileDraft((prev) => ({ ...prev, element: e.target.value }))}
-                    className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     placeholder=""
                   />
                 ) : (
-                  <div className="text-xs px-1" style={{ color: theme.textColor }}>{pony.element || 'Unknown'}</div>
+                  <div className="text-xs px-1" style={{ color: profileTheme.textColor }}>{pony.element || 'Unknown'}</div>
                 )}
               </div>
 
               {/* Location */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                   Location
                 </label>
                 {canEditProfileFields ? (
@@ -1044,18 +885,18 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     type="text"
                     value={profileDraft.location}
                     onChange={(e) => setProfileDraft((prev) => ({ ...prev, location: e.target.value }))}
-                    className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     placeholder=""
                   />
                 ) : (
-                  <div className="text-xs px-1" style={{ color: theme.textColor }}>{pony.location || 'Unknown'}</div>
+                  <div className="text-xs px-1" style={{ color: profileTheme.textColor }}>{pony.location || 'Unknown'}</div>
                 )}
               </div>
 
               {/* Favorite Treat */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                   Favorite Treat
                 </label>
                 {canEditProfileFields ? (
@@ -1063,18 +904,18 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     type="text"
                     value={profileDraft.favoriteTreat}
                     onChange={(e) => setProfileDraft((prev) => ({ ...prev, favoriteTreat: e.target.value }))}
-                    className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     placeholder=""
                   />
                 ) : (
-                  <div className="text-xs px-1" style={{ color: theme.textColor }}>{pony.favoriteTreat || 'Unknown'}</div>
+                  <div className="text-xs px-1" style={{ color: profileTheme.textColor }}>{pony.favoriteTreat || 'Unknown'}</div>
                 )}
               </div>
 
               {/* Hobby */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                   Hobby
                 </label>
                 {canEditProfileFields ? (
@@ -1082,18 +923,18 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     type="text"
                     value={profileDraft.hobby}
                     onChange={(e) => setProfileDraft((prev) => ({ ...prev, hobby: e.target.value }))}
-                    className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     placeholder=""
                   />
                 ) : (
-                  <div className="text-xs px-1" style={{ color: theme.textColor }}>{pony.hobby || 'Unknown'}</div>
+                  <div className="text-xs px-1" style={{ color: profileTheme.textColor }}>{pony.hobby || 'Unknown'}</div>
                 )}
               </div>
 
               {/* Personality */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                   Personality
                 </label>
                 {canEditProfileFields ? (
@@ -1101,18 +942,18 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     type="text"
                     value={profileDraft.personality}
                     onChange={(e) => setProfileDraft((prev) => ({ ...prev, personality: e.target.value }))}
-                    className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     placeholder=""
                   />
                 ) : (
-                  <div className="text-xs px-1" style={{ color: theme.textColor }}>{pony.personality || 'Unknown'}</div>
+                  <div className="text-xs px-1" style={{ color: profileTheme.textColor }}>{pony.personality || 'Unknown'}</div>
                 )}
               </div>
 
               {/* Magical Affinity */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                   Magical Affinity
                 </label>
                 {canEditProfileFields ? (
@@ -1120,18 +961,18 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     type="text"
                     value={profileDraft.magicalAffinity}
                     onChange={(e) => setProfileDraft((prev) => ({ ...prev, magicalAffinity: e.target.value }))}
-                    className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     placeholder=""
                   />
                 ) : (
-                  <div className="text-xs px-1" style={{ color: theme.textColor }}>{pony.magicalAffinity || 'None'}</div>
+                  <div className="text-xs px-1" style={{ color: profileTheme.textColor }}>{pony.magicalAffinity || 'None'}</div>
                 )}
               </div>
 
               {/* Cutie Mark */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+                <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                   Cutie Mark
                 </label>
                 {canEditProfileFields ? (
@@ -1139,12 +980,12 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     type="text"
                     value={profileDraft.cutieMark}
                     onChange={(e) => setProfileDraft((prev) => ({ ...prev, cutieMark: e.target.value }))}
-                    className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     placeholder=""
                   />
                 ) : (
-                  <div className="text-xs px-1" style={{ color: theme.textColor }}>{pony.cutieMark || 'None'}</div>
+                  <div className="text-xs px-1" style={{ color: profileTheme.textColor }}>{pony.cutieMark || 'None'}</div>
                 )}
               </div>
 
@@ -1152,7 +993,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
             {/* Backstory */}
             <div className="space-y-1 pt-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+              <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                 Backstory
               </label>
               {canEditProfileFields ? (
@@ -1160,18 +1001,18 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   rows={2}
                   value={profileDraft.backstory}
                   onChange={(e) => setProfileDraft((prev) => ({ ...prev, backstory: e.target.value }))}
-                  className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none resize-none"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                  className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none resize-none"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                   placeholder=""
                 />
               ) : (
-                <div className="text-xs px-1 leading-relaxed" style={{ color: theme.textColor }}>{pony.backstory || 'A mysterious pony from parts unknown.'}</div>
+                <div className="text-xs px-1 leading-relaxed" style={{ color: profileTheme.textColor }}>{pony.backstory || 'A mysterious pony from parts unknown.'}</div>
               )}
             </div>
 
             {/* Notes - Inside Profile Details Container below Backstory */}
-            <div className="space-y-1 pt-2 border-t" style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+            <div className="space-y-1 pt-2 border-t" style={{ borderColor: effectiveBorderColor }}>
+              <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>
                 Notes
               </label>
               {canEditProfileFields ? (
@@ -1180,13 +1021,13 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   value={profileDraft.notes}
                   onChange={(e) => setProfileDraft((prev) => ({ ...prev, notes: e.target.value }))}
                   placeholder=""
-                  className="w-full max-h-28 overflow-y-auto bg-slate-900 border rounded-lg p-2.5 text-xs focus:outline-none resize-y"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor, color: profileTheme.textColor }}
+                  className="w-full max-h-28 overflow-y-auto border rounded-lg p-2.5 text-xs focus:outline-none resize-y"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                 />
               ) : (
                 <div 
-                  className="max-h-28 overflow-y-auto bg-slate-900/80 rounded-lg p-2.5 border text-xs leading-relaxed whitespace-pre-wrap"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor, color: profileTheme.textColor }}
+                  className="max-h-28 overflow-y-auto rounded-lg p-2.5 border text-xs leading-relaxed whitespace-pre-wrap"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                 >
                   {pony.notes && pony.notes.trim() ? pony.notes : null}
                 </div>
@@ -1198,8 +1039,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
           <div className="space-y-2">
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div 
-                className="bg-slate-950/80 p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
-                style={{ borderColor: theme.borderColor }}
+                className="p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: theme.textColor }}>
                   Daily Income
@@ -1210,8 +1051,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                 <span className="text-[9px] opacity-60 mt-0.5" style={{ color: theme.textColor }}>Love/day</span>
               </div>
               <div 
-                className="bg-slate-950/80 p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
-                style={{ borderColor: theme.borderColor }}
+                className="p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: theme.textColor }}>
                   Total Overall Love
@@ -1223,8 +1064,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
               </div>
 
               <div 
-                className="bg-slate-950/80 p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
-                style={{ borderColor: theme.borderColor }}
+                className="p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: theme.textColor }}>
                   Current Love Total
@@ -1236,8 +1077,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
               </div>
 
               <div 
-                className="bg-slate-950/80 p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
-                style={{ borderColor: theme.borderColor }}
+                className="p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: theme.textColor }}>
                   Total Love Spent
@@ -1249,8 +1090,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
               </div>
 
               <div 
-                className="bg-slate-950/80 p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
-                style={{ borderColor: theme.borderColor }}
+                className="p-3 rounded-xl border text-center flex flex-col justify-center items-center shadow-lg theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <span className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: theme.textColor }}>
                   Total Love Given
@@ -1265,8 +1106,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
           {/* 1.1 Individual Pony Analytics Graph & Information */}
           <div 
-            className="w-full bg-slate-950/70 p-4 rounded-xl border space-y-3 theme-border-hover"
-            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            className="w-full p-4 rounded-xl border space-y-3 theme-border-hover"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-xs font-extrabold uppercase tracking-wider" style={{ color: theme.textColor }}>
@@ -1276,8 +1117,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             </div>
 
             <div 
-              className="bg-slate-900/90 rounded-xl p-3 border space-y-2.5"
-              style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+              className="rounded-xl p-3 border space-y-2.5"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
             >
               <div className="flex flex-wrap items-center justify-between text-[11px] px-1 gap-2">
                 <span className="font-bold" style={{ color: theme.textColor }}>
@@ -1287,7 +1128,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   Cumulative Total: {totalOverallLove.toLocaleString()} Love
                 </span>
                 {canSeeMagicAndAccounting && (
-                  <span className="font-semibold text-purple-300">
+                  <span className="font-semibold" style={{ color: theme.graphMagicalColor || theme.textColor }}>
                     Magic Power: {totalOverallLove.toLocaleString()} Thaums
                   </span>
                 )}
@@ -1308,8 +1149,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
               {/* Visual Curve */}
               <div 
-                className="w-full h-32 bg-slate-950/80 rounded-lg p-2 overflow-hidden flex items-center justify-center border relative"
-                style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                className="w-full h-32 rounded-lg p-2 overflow-hidden flex items-center justify-center border relative"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <svg viewBox="0 0 600 120" className="w-full h-full">
                   <defs>
@@ -1361,8 +1202,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
           </div>
 
           {/* 2. Connected Ponies Section (Grid with Pony Icon and Name) */}
-          <div className="w-full bg-slate-950/70 p-4 rounded-xl border space-y-3 theme-border-hover" style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}>
-            <div className="flex items-center justify-between gap-3 border-b pb-2.5" style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}>
+          <div className="w-full p-4 rounded-xl border space-y-3 theme-border-hover" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
+            <div className="flex items-center justify-between gap-3 border-b pb-2.5" style={{ borderColor: effectiveBorderColor }}>
               <button
                 type="button"
                 onClick={() => setIsConnectedPoniesModalOpen(true)}
@@ -1376,7 +1217,10 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
             {/* Scrollable Grid of Connected Ponies (Icon and Name) */}
             {ponyConnections.length === 0 ? (
-              <div className="py-4 text-center text-xs opacity-60 italic bg-slate-900/50 rounded-xl" style={{ color: theme.textColor }}>
+              <div
+                className="py-4 text-center text-xs opacity-60 italic rounded-xl border"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+              >
                 No connected ponies linked yet.
               </div>
             ) : (
@@ -1390,8 +1234,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     <div
                       key={conn.id}
                       onClick={() => onNavigateToPony(otherPony.id)}
-                      className="flex items-center gap-2.5 p-2 bg-slate-900/80 rounded-xl border hover:border-pink-500/40 transition-all cursor-pointer group theme-border-hover"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                      className="flex items-center gap-2.5 p-2 rounded-xl border hover:opacity-90 transition-all cursor-pointer group theme-border-hover"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                       title={`Open ${otherPony.name}'s profile`}
                     >
                       <PonyAvatar pony={otherPony} theme={theme} size="sm" className="shrink-0 group-hover:scale-105 transition-transform" />
@@ -1408,7 +1252,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
             {/* Search to connect new ponies (Owner of this profile or Admin Only) */}
             {(isAdmin || isPonyOwner) && (
-              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-800">
+              <div className="flex flex-wrap items-center gap-2 pt-3 border-t" style={{ borderColor: effectiveBorderColor }}>
                 <div className="flex-1 min-w-[200px] relative">
                   <input
                     type="text"
@@ -1420,13 +1264,13 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     onFocus={() => setIsSearchFocused(true)}
                     onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                     placeholder="Search ponies to connect..."
-                    className="w-full bg-slate-900 border rounded-xl px-3 py-1.5 text-xs focus:outline-none theme-border-hover transition-all"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-xl px-3 py-1.5 text-xs focus:outline-none theme-border-hover transition-all"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   />
                   {isSearchFocused && ponySearchQuery.trim().length > 0 && (
                     <div 
-                      className="absolute left-0 right-0 bottom-full mb-1 max-h-40 overflow-y-auto bg-slate-900 border rounded-xl shadow-xl z-10 p-1 space-y-1 backdrop-blur-md theme-border-hover"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                      className="absolute left-0 right-0 bottom-full mb-1 max-h-40 overflow-y-auto border rounded-xl shadow-xl z-10 p-1 space-y-1 backdrop-blur-md theme-border-hover"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                     >
                       {connectablePonies.length === 0 ? (
                         <div className="p-2 text-[10px] italic text-center opacity-60" style={{ color: theme.textColor }}>No ponies match search</div>
@@ -1440,7 +1284,11 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                               setPonySearchQuery(p.name);
                               setIsSearchFocused(false);
                             }}
-                            className={`w-full flex items-center gap-2 p-1.5 rounded-lg transition-colors text-left ${targetPonyToConnect === p.id ? 'bg-pink-600/40 border border-pink-500/50' : 'hover:bg-slate-800'}`}
+                            className="w-full flex items-center gap-2 p-1.5 rounded-lg transition-colors text-left hover:bg-white/10 border cursor-pointer"
+                            style={{
+                              backgroundColor: targetPonyToConnect === p.id ? `${theme.buttonColor}35` : 'transparent',
+                              borderColor: targetPonyToConnect === p.id ? effectiveBorderColor : 'transparent',
+                            }}
                           >
                             <PonyAvatar pony={p} theme={theme} size="sm" />
                             <div>
@@ -1459,7 +1307,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   onClick={handleConnect}
                   disabled={!targetPonyToConnect}
                   className="px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-md border transition-all cursor-pointer disabled:opacity-40 theme-border-hover"
-                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                 >
                   Connect
                 </button>
@@ -1467,15 +1315,15 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             )}
 
             {!isPonyOwner && !isAdmin && activeViewerPony && !isConnectedToViewer && (
-              <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-800">
-                <span className="text-slate-400 text-xs">
+              <div className="flex items-center justify-between gap-2 pt-3 border-t" style={{ borderColor: effectiveBorderColor }}>
+                <span className="opacity-75 text-xs" style={{ color: theme.textColor }}>
                   Connect your pony ({activeViewerPony.name})
                 </span>
                 <button
                   type="button"
                   onClick={() => onCreateConnection(activeViewerPony.id, pony.id, 'friendship')}
                   className="px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-md border transition-all cursor-pointer theme-border-hover"
-                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                 >
                   Connect
                 </button>
@@ -1491,8 +1339,11 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             if (isPonyOwner || isAdmin) {
               return (
                 <div 
-                  className="w-full bg-slate-950/40 p-4 rounded-xl border space-y-4 theme-border-hover backdrop-blur-sm"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor }}
+                  className="w-full p-4 rounded-xl border space-y-4 theme-border-hover backdrop-blur-sm"
+                  style={{
+                    backgroundColor: profileTheme.bgImage ? 'transparent' : theme.bgColor,
+                    borderColor: effectiveBorderColor,
+                  }}
                 >
                   <h3 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: profileTheme.textColor }}>
                     Secret Profile
@@ -1500,117 +1351,117 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Species</label>
+                      <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Species</label>
                       <input
                         type="text"
                         disabled={!canEditProfileFields}
                         value={profileDraft.secretSpecies}
                         onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretSpecies: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Element</label>
+                      <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Element</label>
                       <input
                         type="text"
                         disabled={!canEditProfileFields}
                         value={profileDraft.secretElement}
                         onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretElement: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Location</label>
+                      <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Location</label>
                       <input
                         type="text"
                         disabled={!canEditProfileFields}
                         value={profileDraft.secretLocation}
                         onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretLocation: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Favorite Treat</label>
+                      <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Favorite Treat</label>
                       <input
                         type="text"
                         disabled={!canEditProfileFields}
                         value={profileDraft.secretFavoriteTreat}
                         onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretFavoriteTreat: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Hobby</label>
+                      <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Hobby</label>
                       <input
                         type="text"
                         disabled={!canEditProfileFields}
                         value={profileDraft.secretHobby}
                         onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretHobby: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Personality</label>
+                      <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Personality</label>
                       <input
                         type="text"
                         disabled={!canEditProfileFields}
                         value={profileDraft.secretPersonality}
                         onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretPersonality: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Magical Affinity</label>
+                      <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Magical Affinity</label>
                       <input
                         type="text"
                         disabled={!canEditProfileFields}
                         value={profileDraft.secretMagicalAffinity}
                         onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretMagicalAffinity: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Cutie Mark</label>
+                      <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Cutie Mark</label>
                       <input
                         type="text"
                         disabled={!canEditProfileFields}
                         value={profileDraft.secretCutieMark}
                         onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretCutieMark: e.target.value }))}
-                        className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none disabled:opacity-60"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1 pt-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Backstory</label>
+                    <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Backstory</label>
                     <textarea
                       rows={2}
                       disabled={!canEditProfileFields}
                       value={profileDraft.secretBackstory}
                       onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretBackstory: e.target.value }))}
-                      className="w-full bg-slate-900 border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none resize-none disabled:opacity-60"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                      className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none resize-none disabled:opacity-60"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     />
                   </div>
 
-                  <div className="space-y-1 pt-2 border-t" style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Secret Notes</label>
+                  <div className="space-y-1 pt-2 border-t" style={{ borderColor: effectiveBorderColor }}>
+                    <label className="text-[10px] font-bold opacity-70 uppercase tracking-widest block" style={{ color: profileTheme.textColor }}>Secret Notes</label>
                     <textarea
                       rows={2}
                       disabled={!canEditProfileFields}
                       value={profileDraft.secretNotes}
                       onChange={(e) => setProfileDraft((prev) => ({ ...prev, secretNotes: e.target.value }))}
-                      className="w-full max-h-28 overflow-y-auto bg-slate-900 border rounded-lg p-2.5 text-xs focus:outline-none resize-y disabled:opacity-60"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor, color: profileTheme.textColor }}
+                      className="w-full max-h-28 overflow-y-auto border rounded-lg p-2.5 text-xs focus:outline-none resize-y disabled:opacity-60"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: profileTheme.textColor }}
                     />
                   </div>
                 </div>
@@ -1620,36 +1471,39 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             if (isSecretPermissionGranted) {
               return (
                 <div 
-                  className="w-full bg-slate-950/40 p-4 rounded-xl border space-y-4 theme-border-hover backdrop-blur-sm"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor }}
+                  className="w-full p-4 rounded-xl border space-y-4 theme-border-hover backdrop-blur-sm"
+                  style={{
+                    backgroundColor: profileTheme.bgImage ? 'transparent' : theme.bgColor,
+                    borderColor: effectiveBorderColor,
+                  }}
                 >
                   <h3 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: profileTheme.textColor }}>
                     Secret Profile
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {pony.secretSpecies && (
-                      <div className="bg-slate-900 p-2.5 rounded-lg border" style={{ borderColor: theme.borderColor }}>
-                        <span className="text-[10px] block font-semibold opacity-70" style={{ color: theme.textColor }}>Secret Species:</span>
-                        <span className="text-xs font-bold" style={{ color: theme.textColor }}>{pony.secretSpecies}</span>
+                      <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
+                        <span className="text-[10px] block font-semibold opacity-70" style={{ color: profileTheme.textColor }}>Secret Species:</span>
+                        <span className="text-xs font-bold" style={{ color: profileTheme.textColor }}>{pony.secretSpecies}</span>
                       </div>
                     )}
                     {pony.secretElement && (
-                      <div className="bg-slate-900 p-2.5 rounded-lg border" style={{ borderColor: theme.borderColor }}>
-                        <span className="text-[10px] block font-semibold opacity-70" style={{ color: theme.textColor }}>Secret Element:</span>
-                        <span className="text-xs font-bold" style={{ color: theme.textColor }}>{pony.secretElement}</span>
+                      <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
+                        <span className="text-[10px] block font-semibold opacity-70" style={{ color: profileTheme.textColor }}>Secret Element:</span>
+                        <span className="text-xs font-bold" style={{ color: profileTheme.textColor }}>{pony.secretElement}</span>
                       </div>
                     )}
                     {pony.secretLocation && (
-                      <div className="bg-slate-900 p-2.5 rounded-lg border" style={{ borderColor: theme.borderColor }}>
-                        <span className="text-[10px] block font-semibold opacity-70" style={{ color: theme.textColor }}>Secret Location:</span>
-                        <span className="text-xs font-bold" style={{ color: theme.textColor }}>{pony.secretLocation}</span>
+                      <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
+                        <span className="text-[10px] block font-semibold opacity-70" style={{ color: profileTheme.textColor }}>Secret Location:</span>
+                        <span className="text-xs font-bold" style={{ color: profileTheme.textColor }}>{pony.secretLocation}</span>
                       </div>
                     )}
                   </div>
                   {pony.secretNotes && (
-                    <div className="bg-slate-900 p-2.5 rounded-lg border" style={{ borderColor: theme.borderColor }}>
-                      <span className="text-[10px] block font-semibold mb-0.5 opacity-70" style={{ color: theme.textColor }}>Secret Notes:</span>
-                      <p className="text-xs leading-relaxed" style={{ color: theme.textColor }}>{pony.secretNotes}</p>
+                    <div className="p-2.5 rounded-lg border" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
+                      <span className="text-[10px] block font-semibold mb-0.5 opacity-70" style={{ color: profileTheme.textColor }}>Secret Notes:</span>
+                      <p className="text-xs leading-relaxed" style={{ color: profileTheme.textColor }}>{pony.secretNotes}</p>
                     </div>
                   )}
                 </div>
@@ -1664,8 +1518,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             <div 
               className="p-4 rounded-xl border space-y-3 relative overflow-hidden"
               style={{
-                borderColor: theme.transparentAllBorders ? 'transparent' : profileTheme.borderColor,
-                backgroundColor: '#0f172a',
+                borderColor: effectiveBorderColor,
+                backgroundColor: theme.bgColor,
               }}
             >
               <div className="flex items-center justify-between">
@@ -1678,7 +1532,14 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
               </div>
 
               {giftSuccessMsg && (
-                <div className="bg-pink-600/30 border border-pink-400/50 text-pink-200 px-3 py-1.5 rounded-lg text-xs font-bold text-center animate-in fade-in">
+                <div
+                  className="border px-3 py-1.5 rounded-lg text-xs font-bold text-center animate-in fade-in"
+                  style={{
+                    backgroundColor: `${theme.buttonColor}25`,
+                    borderColor: effectiveBorderColor,
+                    color: theme.textColor,
+                  }}
+                >
                   {giftSuccessMsg}
                 </div>
               )}
@@ -1688,15 +1549,15 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   type="button"
                   disabled={hasClaimedFreeGiftToday}
                   onClick={handleSendFreeDailyGift}
-                  className={`px-3 py-1.5 rounded-xl font-extrabold text-xs shadow-md transition-all ${
+                  className={`px-3 py-1.5 rounded-xl border font-extrabold text-xs shadow-md transition-all ${
                     hasClaimedFreeGiftToday
-                      ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                      ? 'opacity-40 cursor-not-allowed'
                       : 'cursor-pointer'
                   }`}
                   style={{
-                    backgroundColor: hasClaimedFreeGiftToday ? undefined : theme.buttonColor,
-                    color: hasClaimedFreeGiftToday ? undefined : theme.buttonTextColor,
-                    borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor
+                    backgroundColor: hasClaimedFreeGiftToday ? theme.bgColor : theme.buttonColor,
+                    color: hasClaimedFreeGiftToday ? theme.textColor : theme.buttonTextColor,
+                    borderColor: effectiveBorderColor,
                   }}
                   title={hasClaimedFreeGiftToday ? 'Daily free gift claimed today. Resets at midnight!' : 'Gift +100 free Love without deducting balance (Once per day)'}
                 >
@@ -1714,7 +1575,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   style={{
                     backgroundColor: theme.buttonColor,
                     color: theme.buttonTextColor,
-                    borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor
+                    borderColor: effectiveBorderColor,
                   }}
                 >
                   Send Gift
@@ -1725,29 +1586,36 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
           {/* 6. ADMIN EXCLUSIVE CONTROLS */}
           {isAdmin && (
-            <div className="bg-slate-950/80 p-4 rounded-xl border space-y-4 theme-border-hover" style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}>
+            <div
+              className="p-4 rounded-xl border space-y-4 theme-border-hover"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+            >
               <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                 Administrative Controls
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Admin Toggle */}
-                <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div
+                  className="p-3 rounded-xl border flex items-center justify-between"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+                >
                   <div>
-                    <strong className="text-white block text-[11px]">Network Administrator</strong>
+                    <strong className="block text-[11px]" style={{ color: theme.textColor }}>Network Administrator</strong>
                   </div>
                   <input
                     type="checkbox"
                     checked={!!pony.isAdmin}
                     onChange={(e) => onTogglePonyAdmin?.(pony.id, e.target.checked)}
-                    className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                    className="w-5 h-5 rounded cursor-pointer"
+                    style={{ accentColor: theme.buttonColor }}
                   />
                 </div>
 
                 {/* Payout & Give Treat */}
                 <div 
-                  className="bg-slate-900/80 p-3 rounded-xl border space-y-2.5 theme-border-hover"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                  className="p-3 rounded-xl border space-y-2.5 theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                 >
                   <div className="flex justify-between items-center">
                     <strong className="block text-[11px]" style={{ color: theme.textColor }}>Payout %</strong>
@@ -1758,8 +1626,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                       max="100"
                       value={pony.payoutPercentage || 0}
                       onChange={(e) => onUpdatePayout?.(pony.id, Number(e.target.value))}
-                      className="w-16 bg-slate-950 border rounded px-1.5 py-0.5 text-right font-bold text-[11px] focus:outline-none"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                      className="w-16 border rounded px-1.5 py-0.5 text-right font-bold text-[11px] focus:outline-none"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                     />
                   </div>
                   <input
@@ -1769,12 +1637,12 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     step="0.01"
                     value={pony.payoutPercentage || 0}
                     onChange={(e) => onUpdatePayout?.(pony.id, Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-1.5 rounded-lg appearance-none cursor-pointer bg-white/15"
                     style={{ accentColor: theme.buttonColor }}
                   />
                   <div 
                     className="pt-2 border-t flex justify-end"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                    style={{ borderColor: effectiveBorderColor }}
                   >
                     <button
                       onClick={() => {
@@ -1790,7 +1658,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                         }
                       }}
                       className="w-full sm:w-auto px-4 py-1.5 rounded-lg font-bold text-[11px] shadow-lg flex items-center justify-center transition-all cursor-pointer border hover:opacity-90"
-                      style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                      style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                     >
                       Give Treat
                     </button>
@@ -1799,9 +1667,12 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
               </div>
 
               {pony.treatsReceived && pony.treatsReceived > 0 ? (
-                <div className="bg-pink-950/20 border border-pink-500/20 p-2 rounded-lg text-center">
-                  <span className="text-[10px] text-pink-300 font-medium">
-                    Total rewards received: <strong className="text-pink-400">+{pony.treatsReceived.toLocaleString()} Love</strong>
+                <div
+                  className="border p-2 rounded-lg text-center"
+                  style={{ backgroundColor: `${theme.buttonColor}15`, borderColor: effectiveBorderColor }}
+                >
+                  <span className="text-[10px] font-medium" style={{ color: theme.textColor }}>
+                    Total rewards received: <strong className="font-bold">+{pony.treatsReceived.toLocaleString()} Love</strong>
                   </span>
                 </div>
               ) : null}
@@ -1811,8 +1682,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
 
         {/* Footer */}
         <div 
-          className="px-6 py-4 bg-slate-950 border-t flex items-center justify-end gap-2"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="px-6 py-4 border-t flex items-center justify-end gap-2"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <button
             onClick={() => handleSaveProfileChanges(true)}
@@ -1820,7 +1691,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             style={{ 
               backgroundColor: theme.buttonColor, 
               color: theme.buttonTextColor, 
-              borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor 
+              borderColor: effectiveBorderColor 
             }}
           >
             {canEditProfileFields && hasUnsavedProfileChanges ? 'Save & Close' : 'Close'}
@@ -1867,12 +1738,12 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
       {isGiftModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div 
-            className="relative w-full max-w-sm bg-slate-900 border rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4 theme-border-hover"
-            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            className="relative w-full max-w-sm border rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4 theme-border-hover"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
           >
             <div 
               className="flex items-center justify-between border-b pb-3" 
-              style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+              style={{ borderColor: effectiveBorderColor }}
             >
               <div className="flex items-center gap-2">
                 <Gift className="w-5 h-5" style={{ color: theme.buttonColor }} />
@@ -1882,7 +1753,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
               </div>
               <button 
                 onClick={() => setIsGiftModalOpen(false)} 
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white"
+                className="p-1 rounded-lg border hover:opacity-80 cursor-pointer"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1901,8 +1773,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     autoFocus
                     value={giftInputAmount}
                     onChange={(e) => setGiftInputAmount(Math.max(1, Number(e.target.value) || 0))}
-                    className="w-full bg-slate-950 border rounded-xl px-4 py-2.5 font-bold text-center text-lg focus:outline-none"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-xl px-4 py-2.5 font-bold text-center text-lg focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   />
                   <span className="block mt-1.5 text-[11px] opacity-70 text-right" style={{ color: theme.textColor }}>
                     Your balance: {viewerCurrentLove.toLocaleString()} Love
@@ -1913,8 +1785,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsGiftModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 border"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 border cursor-pointer"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   >
                     Cancel
                   </button>
@@ -1926,7 +1798,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     style={{ 
                       backgroundColor: theme.buttonColor, 
                       color: theme.buttonTextColor, 
-                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor 
+                      borderColor: effectiveBorderColor 
                     }}
                   >
                     Confirm
@@ -1936,8 +1808,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
             ) : (
               <div className="space-y-4">
                 <div 
-                  className="p-3.5 rounded-xl bg-slate-950/60 border text-center space-y-1.5" 
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                  className="p-3.5 rounded-xl border text-center space-y-1.5" 
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                 >
                   <p className="text-sm font-bold" style={{ color: theme.textColor }}>
                     Are you sure?
@@ -1951,8 +1823,8 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setGiftStep(1)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold hover:bg-slate-800 border"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold hover:opacity-80 border cursor-pointer"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   >
                     Back
                   </button>
@@ -1966,7 +1838,7 @@ export const PonyDetailModal: React.FC<PonyDetailModalProps> = ({
                     style={{ 
                       backgroundColor: theme.buttonColor, 
                       color: theme.buttonTextColor, 
-                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor 
+                      borderColor: effectiveBorderColor,
                     }}
                   >
                     Yes, Confirm Gift

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { PonyNode, WebConnection, ConnectionType, CustomStatus } from '../types/pony';
-import { calculatePonyDailyRate, getNormalizedPonySplits, calculateLoveFlowStats, getUserMainPony } from '../utils/calculations';
+import { getNormalizedPonySplits, calculateLoveFlowStats, getUserMainPony } from '../utils/calculations';
 import { 
   Sparkles, 
   Plus, 
@@ -10,12 +10,9 @@ import {
   Link2, 
   Unlink, 
   Trash2, 
-  Edit3,
-  Eye,
   AlertTriangle,
   LayoutGrid,
   ChevronDown,
-  Layers,
   Check
 } from 'lucide-react';
 import { AdminConfirmModal } from './AdminConfirmModal';
@@ -38,8 +35,6 @@ interface NetworkWebProps {
   targetDate: string;
   statuses: CustomStatus[];
   livePulseTick?: number;
-  webTitle: string;
-  onUpdateWebTitle: (title: string) => void;
   isLayoutLocked?: boolean;
   currentUserPonyId?: string;
   currentUserId?: string;
@@ -170,8 +165,6 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
   targetDate,
   statuses,
   livePulseTick = 0,
-  webTitle,
-  onUpdateWebTitle,
   isLayoutLocked = false,
   currentUserPonyId,
   currentUserId,
@@ -448,16 +441,6 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
 
   // Handle Scroll Locking when hovering map
   useEffect(() => {
-    const handleWheelLock = (e: WheelEvent) => {
-      if (isHoveringMap) {
-        // We let the React onWheel handle the zoom/pan, 
-        // but we prevent the default page scroll if hovering the map.
-        // Actually, if we use e.preventDefault() here it might block the browser-level scroll
-        // which is what we want.
-        e.stopPropagation();
-      }
-    };
-
     if (isHoveringMap) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -1045,16 +1028,20 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
     }
   };
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
+  const effectiveMapBorderColor = (theme.transparentAllBorders || theme.transparentMapBorder) ? 'transparent' : theme.borderColor;
+
   return (
     <div 
       ref={containerRef}
       onMouseEnter={() => setIsHoveringMap(true)}
       onMouseLeave={() => setIsHoveringMap(false)}
-      className={`relative w-full h-[600px] lg:h-[650px] bg-slate-950/90 rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-md select-none ${
+      className={`relative w-full h-[600px] lg:h-[650px] rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-md select-none ${
         isConnectMode ? 'cursor-crosshair' : ''
       } ${isFullScreen ? 'rounded-none border-0 h-screen w-screen' : ''}`}
       style={{
-        borderColor: (theme.transparentAllBorders || theme.transparentMapBorder) ? 'transparent' : theme.borderColor,
+        backgroundColor: theme.bgColor,
+        borderColor: effectiveMapBorderColor,
         backgroundImage: `
           radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.08) 0%, transparent 60%),
           linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
@@ -1067,8 +1054,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
       {/* Top Left: Ponies & Links Count */}
       <div className="absolute top-4 left-4 z-20 flex items-center gap-2">
         <div 
-          className="bg-slate-900/90 px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg text-xs font-semibold select-none"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+          className="px-3 py-1.5 rounded-xl border backdrop-blur-md shadow-lg text-xs font-semibold select-none"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
         >
           {visiblePonies.length} {visiblePonies.length === 1 ? 'pony' : 'ponies'} • {visibleConnections.length} links
         </div>
@@ -1076,7 +1063,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
           <button
             onClick={() => setFirstLayerOnly(false)}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all border cursor-pointer"
-            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
             title="Showing Friends view. Click to show full network."
           >
             <span>Friends</span>
@@ -1087,7 +1074,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
           <button
             onClick={() => setFilterMyPonies(false)}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all border cursor-pointer"
-            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
             title="Showing My Ponies view. Click to show full network."
           >
             <span>My Ponies</span>
@@ -1098,8 +1085,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
 
       {/* Top Right Controls: Order By Dropdown, Zoom/Reset buttons, Connection Style Toggle, and Add Pony button */}
       <div 
-        className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border backdrop-blur-md shadow-2xl theme-border-hover"
-        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+        className="absolute top-4 right-4 z-20 flex flex-wrap items-center gap-2 p-1.5 rounded-2xl border backdrop-blur-md shadow-2xl theme-border-hover"
+        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
       >
         {/* Single Ordering Button with dropdown options (icon only) */}
         <div className="relative">
@@ -1110,7 +1097,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
             style={{
               backgroundColor: theme.buttonColor,
               color: theme.buttonTextColor,
-              borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor
+              borderColor: effectiveBorderColor
             }}
             title="Order points into Hierarchy, Circular, Matrix, Grid, or Friends layout"
           >
@@ -1120,41 +1107,41 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
 
           {isOrderDropdownOpen && (
             <div 
-              className="absolute right-0 mt-1.5 w-40 bg-slate-900 border rounded-xl shadow-2xl backdrop-blur-xl py-1 text-xs z-50 animate-in fade-in zoom-in-95"
-              style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+              className="absolute right-0 mt-1.5 w-40 border rounded-xl shadow-2xl backdrop-blur-xl py-1 text-xs z-50 animate-in fade-in zoom-in-95"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() => handleArrangeLayout('custom')}
-                className="w-full text-left px-3 py-2 hover:bg-slate-800/80 font-medium transition-colors"
+                className="w-full text-left px-3 py-2 hover:bg-white/10 font-medium transition-colors cursor-pointer"
                 style={{ color: theme.textColor }}
               >
                 Custom Layout
               </button>
               <button
                 onClick={() => handleArrangeLayout('hierarchy')}
-                className="w-full text-left px-3 py-2 hover:bg-slate-800/80 font-medium transition-colors"
+                className="w-full text-left px-3 py-2 hover:bg-white/10 font-medium transition-colors cursor-pointer"
                 style={{ color: theme.textColor }}
               >
                 Hierarchy
               </button>
               <button
                 onClick={() => handleArrangeLayout('circular')}
-                className="w-full text-left px-3 py-2 hover:bg-slate-800/80 font-medium transition-colors"
+                className="w-full text-left px-3 py-2 hover:bg-white/10 font-medium transition-colors cursor-pointer"
                 style={{ color: theme.textColor }}
               >
                 Circular
               </button>
               <button
                 onClick={() => handleArrangeLayout('web')}
-                className="w-full text-left px-3 py-2 hover:bg-slate-800/80 font-medium transition-colors"
+                className="w-full text-left px-3 py-2 hover:bg-white/10 font-medium transition-colors cursor-pointer"
                 style={{ color: theme.textColor }}
               >
                 Matrix
               </button>
               <button
                 onClick={() => handleArrangeLayout('grid')}
-                className="w-full text-left px-3 py-2 hover:bg-slate-800/80 font-medium transition-colors"
+                className="w-full text-left px-3 py-2 hover:bg-white/10 font-medium transition-colors cursor-pointer"
                 style={{ color: theme.textColor }}
               >
                 Grid
@@ -1165,13 +1152,13 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                     setFilterMyPonies(prev => !prev);
                     setIsOrderDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 hover:bg-slate-800/80 font-medium transition-colors flex items-center justify-between ${
+                  className={`w-full text-left px-3 py-2 hover:bg-white/10 font-medium transition-colors flex items-center justify-between cursor-pointer ${
                     filterMyPonies ? 'font-bold' : ''
                   }`}
                   style={{ color: theme.textColor }}
                 >
                   <span>My Ponies</span>
-                  {filterMyPonies && <Check className="w-3.5 h-3.5 text-pink-400" />}
+                  {filterMyPonies && <Check className="w-3.5 h-3.5" style={{ color: theme.buttonColor }} />}
                 </button>
               )}
               <button
@@ -1180,13 +1167,13 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                   if (!firstLayerOnly) handleArrangeLayout('firstLayer');
                   setIsOrderDropdownOpen(false);
                 }}
-                className={`w-full text-left px-3 py-2 hover:bg-slate-800/80 font-medium transition-colors flex items-center justify-between ${
+                className={`w-full text-left px-3 py-2 hover:bg-white/10 font-medium transition-colors flex items-center justify-between cursor-pointer ${
                   firstLayerOnly ? 'font-bold' : ''
                 }`}
                 style={{ color: theme.textColor }}
               >
                 <span>Friends</span>
-                {firstLayerOnly && <Check className="w-3.5 h-3.5 text-pink-400" />}
+                {firstLayerOnly && <Check className="w-3.5 h-3.5" style={{ color: theme.buttonColor }} />}
               </button>
             </div>
           )}
@@ -1274,8 +1261,15 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
 
       {/* Connect Mode Banner */}
       {isConnectMode && (
-        <div className={`absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-pink-600/95 text-white text-xs px-4 py-2 rounded-full border border-pink-300/40 shadow-xl backdrop-blur-md flex items-center gap-2 ${liveFlowAnimationsEnabled ? 'animate-bounce' : ''}`}>
-          <Sparkles className="w-4 h-4 text-pink-200" />
+        <div
+          className={`absolute top-16 left-1/2 -translate-x-1/2 z-20 text-xs px-4 py-2 rounded-full border shadow-xl backdrop-blur-md flex items-center gap-2 ${liveFlowAnimationsEnabled ? 'animate-bounce' : ''}`}
+          style={{
+            backgroundColor: theme.buttonColor,
+            color: theme.buttonTextColor,
+            borderColor: effectiveBorderColor,
+          }}
+        >
+          <Sparkles className="w-4 h-4 opacity-90" />
           <span>
             {userPony
               ? `Connecting to "${userPony.name}" — Click any pony to connect directly!`
@@ -1286,7 +1280,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
               setIsConnectMode(false);
               setConnectSourceId(null);
             }}
-            className="ml-2 text-pink-200 hover:text-white underline font-semibold"
+            className="ml-2 opacity-90 hover:opacity-100 underline font-semibold cursor-pointer"
           >
             Cancel
           </button>
@@ -1296,11 +1290,16 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
       {/* Empty State Banner */}
       {ponies.length === 0 && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none p-6 text-center">
-          <h3 className="text-lg font-bold text-white mb-4">Pony Network</h3>
+          <h3 className="text-lg font-bold mb-4" style={{ color: theme.textColor }}>Pony Network</h3>
           {canAddPony && (
             <button
               onClick={() => onOpenAddModal()}
-              className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs shadow-lg shadow-pink-600/30 transition-all"
+              className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs border shadow-lg transition-all cursor-pointer"
+              style={{
+                backgroundColor: theme.buttonColor,
+                color: theme.buttonTextColor,
+                borderColor: effectiveBorderColor,
+              }}
             >
               <Plus className="w-4 h-4" />
               Add Pony
@@ -1692,7 +1691,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
           className="absolute bottom-4 left-4 z-20 w-80 border rounded-2xl p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2 text-xs theme-border-hover overflow-hidden transition-colors"
           style={{ 
             borderColor: theme.transparentAllBorders ? 'transparent' : (singleSelectedPony.profileBorderColor || theme.borderColor),
-            backgroundColor: singleSelectedPony.profileBgImage ? 'transparent' : '#0f172a'
+            backgroundColor: singleSelectedPony.profileBgImage ? 'transparent' : theme.bgColor,
           }}
         >
           {singleSelectedPony.profileBgImage && (
@@ -1718,8 +1717,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                   <img 
                     src={singleSelectedPony.avatarIcon} 
                     alt={singleSelectedPony.name} 
-                    className="w-10 h-10 rounded-xl bg-slate-800 border object-cover shadow-lg"
-                    style={{ borderColor: theme.borderColor }}
+                    className="w-10 h-10 rounded-xl border object-cover shadow-lg"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                   />
                 ) : (
                   <span className="text-2xl">{singleSelectedPony.avatarIcon || '💖'}</span>
@@ -1729,7 +1728,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                 <div className="flex items-center gap-1.5">
                   <button 
                     onClick={() => onOpenFullDetailModal(singleSelectedPony.id)}
-                    className="text-sm block leading-tight font-bold hover:underline transition-colors text-left"
+                    className="text-sm block leading-tight font-bold hover:underline transition-colors text-left cursor-pointer"
                     style={{ color: singleSelectedPony.profileTextColor || theme.textColor }}
                   >
                     {singleSelectedPony.name}
@@ -1742,7 +1741,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                 setSelectedPonyIds(new Set());
                 onSelectPony(null);
               }}
-              className="hover:opacity-100 opacity-60 p-1 rounded-lg hover:bg-slate-800"
+              className="hover:opacity-100 opacity-60 p-1 rounded-lg hover:bg-white/10 cursor-pointer"
               style={{ color: singleSelectedPony.profileTextColor || theme.textColor }}
             >
               ✕
@@ -1769,7 +1768,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
             <button
               onClick={() => onOpenFullDetailModal(singleSelectedPony.id)}
               className="flex-1 py-1.5 px-2 rounded-xl font-bold text-xs flex items-center justify-center shadow-md transition-all border cursor-pointer theme-border-hover"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
             >
               <span>Profile</span>
             </button>
@@ -1785,7 +1784,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                 return (
                   <div
                     className="flex-1 py-1.5 px-2 rounded-xl font-bold text-xs flex items-center justify-center shadow-md select-none border"
-                    style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                    style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                     title="You own this pony"
                   >
                     <span>Owned</span>
@@ -1796,8 +1795,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
               if (isConnectedToUser) {
                 return (
                   <div
-                    className="flex-1 py-1.5 px-2 rounded-xl bg-slate-900 border text-xs font-bold flex items-center justify-center select-none"
-                    style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                    className="flex-1 py-1.5 px-2 rounded-xl border text-xs font-bold flex items-center justify-center select-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                     title={`Connected directly to ${userPony?.name || 'your pony'}`}
                   >
                     <span>Connected</span>
@@ -1817,7 +1816,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                     }
                   }}
                   className="flex-1 py-1.5 px-2 rounded-xl font-bold text-xs flex items-center justify-center shadow-md transition-all border cursor-pointer theme-border-hover"
-                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                   title={`Connect directly to ${userPony?.name || 'your pony'}`}
                 >
                   <span>Connect</span>
@@ -1831,8 +1830,11 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
       {/* RIGHT-CLICK CONTEXT MENU */}
       {contextMenu.visible && (
         <div
-          className="absolute z-50 bg-slate-900/95 border border-purple-500/40 rounded-xl py-1.5 shadow-2xl backdrop-blur-xl text-xs w-48 animate-in fade-in zoom-in-95 duration-100"
+          className="absolute z-50 border rounded-xl py-1.5 shadow-2xl backdrop-blur-xl text-xs w-48 animate-in fade-in zoom-in-95 duration-100"
           style={{
+            backgroundColor: theme.bgColor,
+            borderColor: effectiveBorderColor,
+            color: theme.textColor,
             left: Math.min(contextMenu.x, (containerRef.current?.clientWidth || 500) - 200),
             top: Math.min(contextMenu.y, (containerRef.current?.clientHeight || 400) - 200),
           }}
@@ -1840,8 +1842,14 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
         >
           {contextPony ? (
             <>
-              <div className="px-3 py-1.5 border-b border-purple-500/20 text-[11px] font-bold text-pink-300 flex items-center gap-1.5">
-                <span className="w-5 h-5 rounded flex items-center justify-center shrink-0 overflow-hidden bg-slate-900 border border-slate-800" style={{ borderColor: theme.borderColor }}>
+              <div
+                className="px-3 py-1.5 border-b text-[11px] font-bold flex items-center gap-1.5"
+                style={{ borderColor: effectiveBorderColor, color: theme.textColor }}
+              >
+                <span
+                  className="w-5 h-5 rounded flex items-center justify-center shrink-0 overflow-hidden border"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+                >
                   {contextPony.avatarIcon && (contextPony.avatarIcon.startsWith('data:image') || contextPony.avatarIcon.startsWith('http')) ? (
                     <img src={contextPony.avatarIcon} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -1857,7 +1865,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                   onSelectPony(contextPony.id);
                   onOpenFullDetailModal(contextPony.id);
                 }}
-                className="w-full px-3 py-2 text-left hover:bg-purple-950/60 text-slate-200 hover:text-white flex items-center gap-2"
+                className="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                style={{ color: theme.textColor }}
               >
                 <span>Profile</span>
               </button>
@@ -1898,7 +1907,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                         onCreateConnection(myPonyId, contextPony.id, 'friendship');
                       }
                     }}
-                    className="w-full px-3 py-2 text-left hover:bg-purple-950/60 text-cyan-300 hover:text-white flex items-center gap-2 font-bold"
+                    className="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center gap-2 font-bold cursor-pointer"
+                    style={{ color: theme.buttonColor }}
                   >
                     <span>Connect</span>
                   </button>
@@ -1933,9 +1943,10 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                     setContextMenu(prev => ({ ...prev, visible: false }));
                     onOpenAddModal({ x: contextMenu.canvasX, y: contextMenu.canvasY });
                   }}
-                  className="w-full px-3 py-2 text-left hover:bg-purple-950/60 text-slate-200 hover:text-white flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                  style={{ color: theme.textColor }}
                 >
-                  <Plus className="w-3.5 h-3.5 text-pink-400" />
+                  <Plus className="w-3.5 h-3.5" style={{ color: theme.buttonColor }} />
                   Add Pony Here
                 </button>
               )}
@@ -1945,9 +1956,10 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                   setContextMenu(prev => ({ ...prev, visible: false }));
                   handleResetView();
                 }}
-                className="w-full px-3 py-2 text-left hover:bg-purple-950/60 text-slate-200 hover:text-white flex items-center gap-2"
+                className="w-full px-3 py-2 text-left hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                style={{ color: theme.textColor }}
               >
-                <Maximize2 className="w-3.5 h-3.5 text-purple-400" />
+                <Maximize2 className="w-3.5 h-3.5" style={{ color: theme.buttonColor }} />
                 Reset View
               </button>
             </>
@@ -1957,32 +1969,36 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
 
       {/* CONNECTION CHANNEL INFO CARD */}
       {selectedConnection && (
-        <div className="absolute bottom-4 right-4 z-20 w-72 bg-slate-900/95 border border-cyan-500/40 rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in fade-in text-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-cyan-500/20">
-            <span className="font-bold text-cyan-300 flex items-center gap-1.5">
-              <Link2 className="w-3.5 h-3.5" />
+        <div
+          className="absolute bottom-4 right-4 z-20 w-72 border rounded-xl p-4 shadow-2xl backdrop-blur-md animate-in fade-in text-xs"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+        >
+          <div className="flex items-center justify-between pb-2 border-b" style={{ borderColor: effectiveBorderColor }}>
+            <span className="font-bold flex items-center gap-1.5" style={{ color: theme.textColor }}>
+              <Link2 className="w-3.5 h-3.5" style={{ color: theme.connectionLineColor || theme.buttonColor }} />
               Connection Channel
             </span>
             <button
               onClick={() => setSelectedConnectionId(null)}
-              className="text-slate-400 hover:text-slate-200"
+              className="opacity-70 hover:opacity-100 cursor-pointer"
+              style={{ color: theme.textColor }}
             >
               ✕
             </button>
           </div>
-          <div className="mt-2 text-slate-300 space-y-1.5">
+          <div className="mt-2 space-y-1.5" style={{ color: theme.textColor }}>
             <p>
-              <span className="text-slate-400">From:</span> <strong className="text-pink-300">{nodeMap.get(selectedConnection.source)?.name}</strong>
+              <span className="opacity-70">From:</span> <strong className="font-bold">{nodeMap.get(selectedConnection.source)?.name}</strong>
             </p>
             <p>
-              <span className="text-slate-400">To:</span> <strong className="text-pink-300">{nodeMap.get(selectedConnection.target)?.name}</strong>
+              <span className="opacity-70">To:</span> <strong className="font-bold">{nodeMap.get(selectedConnection.target)?.name}</strong>
             </p>
             {(Boolean(currentUserId) && (isAdmin || isOwner(nodeMap.get(selectedConnection.source)) || isOwner(nodeMap.get(selectedConnection.target)))) && (
               <button
                 onClick={() => {
                   setConnectionPendingDelete(selectedConnection);
                 }}
-                className="w-full mt-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-800/50 text-red-300 border border-red-700/40 flex items-center justify-center gap-1.5"
+                className="w-full mt-3 py-1.5 rounded-lg bg-red-900/30 hover:bg-red-800/50 text-red-300 border border-red-700/40 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Unlink className="w-3.5 h-3.5" />
                 Sever Connection Link
@@ -2015,7 +2031,8 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
           onClick={() => setPonyPendingDelete(null)}
         >
           <div 
-            className="w-full max-w-sm bg-slate-900 border border-red-500/50 rounded-2xl p-5 shadow-2xl animate-in zoom-in-95 text-slate-200"
+            className="w-full max-w-sm border rounded-2xl p-5 shadow-2xl animate-in zoom-in-95"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 text-red-400 mb-3">
@@ -2023,27 +2040,31 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                 <AlertTriangle className="w-5 h-5 text-red-400" />
               </div>
               <div>
-                <h4 className="text-sm font-bold text-white">Delete Pony Node?</h4>
-                <p className="text-[11px] text-slate-400">This action cannot be undone.</p>
+                <h4 className="text-sm font-bold" style={{ color: theme.textColor }}>Delete Pony Node?</h4>
+                <p className="text-[11px] opacity-70" style={{ color: theme.textColor }}>This action cannot be undone.</p>
               </div>
             </div>
 
-            <div className="my-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center gap-2.5">
+            <div
+              className="my-3 p-3 rounded-xl border flex items-center gap-2.5"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+            >
               <PonyAvatar pony={ponyPendingDelete} theme={theme} size="md" />
               <div>
-                <strong className="text-white text-xs block">{ponyPendingDelete.name}</strong>
+                <strong className="text-xs block" style={{ color: theme.textColor }}>{ponyPendingDelete.name}</strong>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              Are you sure you want to remove <strong className="text-white font-bold">{ponyPendingDelete.name}</strong> from the network web? All associated love channel links and splits will be severed.
+            <p className="text-xs opacity-85 leading-relaxed mb-4" style={{ color: theme.textColor }}>
+              Are you sure you want to remove <strong className="font-bold">{ponyPendingDelete.name}</strong> from the network web? All associated love channel links and splits will be severed.
             </p>
 
             <div className="flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setPonyPendingDelete(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold text-xs transition-colors"
+                className="px-4 py-2 rounded-xl border hover:opacity-80 font-semibold text-xs transition-colors cursor-pointer"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 Cancel
               </button>
@@ -2056,7 +2077,7 @@ export const NetworkWeb: React.FC<NetworkWebProps> = ({
                   onSelectPony(null);
                   onDeletePony(idToDelete);
                 }}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-red-600/30 transition-all"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-red-600/30 transition-all cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Yes, Delete Pony

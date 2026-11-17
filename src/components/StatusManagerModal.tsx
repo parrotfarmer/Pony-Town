@@ -43,6 +43,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
   const [newAllowMagicAndAccounting, setNewAllowMagicAndAccounting] = useState<boolean>(false);
 
   const { theme, storeBorders, addStoreBorder, updateStoreBorder, deleteStoreBorder } = useSettings();
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
 
   const [newBorderName, setNewBorderName] = useState('');
   const [newBorderPrice, setNewBorderPrice] = useState<number>(500);
@@ -193,23 +194,24 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-xl bg-slate-900 border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
-        style={{ borderColor: theme.borderColor }}
+        className="relative w-full max-w-xl border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
+        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
       >
         
         {/* Header */}
         <div 
-          className="flex items-center justify-between px-6 py-4 border-b bg-slate-950/60"
-          style={{ borderColor: theme.borderColor }}
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-2.5">
             <div>
-              <h2 className="text-base font-bold text-white">Manager</h2>
+              <h2 className="text-base font-bold" style={{ color: theme.textColor }}>Manager</h2>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+            className="p-1.5 rounded-lg border hover:opacity-80 cursor-pointer transition-opacity"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -217,14 +219,14 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
 
         {/* Admin Tabs */}
         <div 
-          className="flex border-b bg-slate-950/40 px-6 pt-3 gap-3"
-          style={{ borderColor: theme.borderColor }}
+          className="flex border-b px-6 pt-3 gap-3"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <button
             type="button"
             onClick={() => setActiveTab('statuses')}
             className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
-              activeTab === 'statuses' ? 'border-white opacity-100' : 'border-transparent opacity-60 hover:opacity-90'
+              activeTab === 'statuses' ? 'opacity-100' : 'opacity-60 hover:opacity-90'
             }`}
             style={{ color: theme.textColor, borderColor: activeTab === 'statuses' ? theme.textColor : 'transparent' }}
           >
@@ -234,7 +236,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
             type="button"
             onClick={() => setActiveTab('store')}
             className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer ${
-              activeTab === 'store' ? 'border-white opacity-100' : 'border-transparent opacity-60 hover:opacity-90'
+              activeTab === 'store' ? 'opacity-100' : 'opacity-60 hover:opacity-90'
             }`}
             style={{ color: theme.textColor, borderColor: activeTab === 'store' ? theme.textColor : 'transparent' }}
           >
@@ -250,8 +252,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
           {/* Add New Status Form */}
           <form 
             onSubmit={handleAddStatus} 
-            className="bg-slate-950/70 p-4 rounded-xl border space-y-3 theme-border-hover"
-            style={{ borderColor: theme.borderColor }}
+            className="p-4 rounded-xl border space-y-3 theme-border-hover"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
           >
             <span className="font-bold block text-xs uppercase tracking-wider" style={{ color: theme.textColor }}>
               Create New Status Rank
@@ -266,8 +268,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   placeholder="e.g. Super Love Bloom"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full bg-slate-900 border rounded-lg px-3 py-1.5 focus:outline-none theme-border-hover"
-                  style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                  className="w-full border rounded-lg px-3 py-1.5 focus:outline-none theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 />
               </div>
 
@@ -281,8 +283,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   required
                   value={newMultiplier}
                   onChange={(e) => setNewMultiplier(Number(e.target.value))}
-                  className="w-full bg-slate-900 border rounded-lg px-3 py-1.5 font-bold focus:outline-none theme-border-hover"
-                  style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                  className="w-full border rounded-lg px-3 py-1.5 font-bold focus:outline-none theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 />
               </div>
 
@@ -294,8 +296,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   step="50"
                   value={newPrice}
                   onChange={(e) => setNewPrice(Number(e.target.value))}
-                  className="w-full bg-slate-900 border rounded-lg px-3 py-1.5 font-bold focus:outline-none theme-border-hover"
-                  style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                  className="w-full border rounded-lg px-3 py-1.5 font-bold focus:outline-none theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 />
               </div>
             </div>
@@ -321,8 +323,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                     value={isImageIcon(newBadgeIcon) ? '🖼️' : newBadgeIcon}
                     onChange={(e) => setNewBadgeIcon(e.target.value)}
                     placeholder="Icon"
-                    className="w-12 bg-slate-900 border rounded-lg px-1.5 py-1 text-center text-sm font-bold focus:outline-none theme-border-hover"
-                    style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                    className="w-12 border rounded-lg px-1.5 py-1 text-center text-sm font-bold focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                     title="Badge Icon Emoji"
                     disabled={isImageIcon(newBadgeIcon)}
                   />
@@ -344,7 +346,12 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                         }
                       }}
                     />
-                    <span className="text-[10px] bg-slate-800 px-2 py-1 rounded hover:bg-slate-700 border border-slate-700">Upload Img</span>
+                    <span
+                      className="text-[10px] px-2 py-1 rounded border hover:opacity-80 transition-opacity"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                    >
+                      Upload Img
+                    </span>
                   </label>
                   {isImageIcon(newBadgeIcon) && (
                     <button
@@ -363,7 +370,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   type="checkbox"
                   checked={newAllowMagicAndAccounting}
                   onChange={(e) => setNewAllowMagicAndAccounting(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-900 text-pink-500 focus:ring-pink-500 w-3.5 h-3.5"
+                  className="rounded text-pink-500 focus:ring-pink-500 w-3.5 h-3.5"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                 />
                 <span>Allow Magic Power & Accounting View</span>
               </label>
@@ -371,7 +379,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
               <button
                 type="submit"
                 className="ml-auto px-4 py-1.5 rounded-lg font-bold flex items-center gap-1.5 shadow-md transition-all border cursor-pointer theme-border-hover"
-                style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add Status
@@ -394,15 +402,15 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                 return (
                   <div
                     key={status.id}
-                    className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-xl border text-xs theme-border-hover"
-                    style={{ borderColor: theme.borderColor }}
+                    className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl border text-xs theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                   >
                     <div className="flex items-center gap-2.5 flex-1 min-w-[150px]">
                       <span
                         className="w-3.5 h-3.5 rounded-full flex-shrink-0"
                         style={{ backgroundColor: status.color }}
                       />
-                      <div className="w-8 h-8 rounded bg-slate-900 border flex items-center justify-center shrink-0 overflow-hidden" style={{ borderColor: theme.borderColor }}>
+                      <div className="w-8 h-8 rounded border flex items-center justify-center shrink-0 overflow-hidden" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                         {isImageIcon(status.badgeIcon) ? (
                           <img src={status.badgeIcon} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -416,8 +424,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                           handleUpdate(status.id, { badgeIcon: e.target.value })
                         }
                         onBlur={flushPendingCommits}
-                        className="w-10 bg-slate-900 border rounded text-center text-xs p-1"
-                        style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                        className="w-10 border rounded text-center text-xs p-1"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                         title="Badge Icon (Emoji or Image URL)"
                         disabled={isImageIcon(status.badgeIcon)}
                       />
@@ -439,7 +447,12 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                             }
                           }}
                         />
-                        <span className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded hover:bg-slate-700 border border-slate-700">Img</span>
+                        <span
+                          className="text-[9px] px-1.5 py-0.5 rounded border hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                        >
+                          Img
+                        </span>
                       </label>
                       {isImageIcon(status.badgeIcon) && (
                         <button
@@ -457,7 +470,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                           handleUpdate(status.id, { name: e.target.value })
                         }
                         onBlur={flushPendingCommits}
-                        className="bg-transparent font-bold border-b border-transparent hover:border-slate-600 focus:outline-none flex-1"
+                        className="bg-transparent font-bold border-b border-transparent focus:outline-none flex-1"
                         style={{ color: theme.textColor }}
                       />
                     </div>
@@ -468,7 +481,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                           type="checkbox"
                           checked={!!status.allowMagicAndAccounting}
                           onChange={(e) => handleUpdate(status.id, { allowMagicAndAccounting: e.target.checked }, true)}
-                          className="rounded border-slate-700 bg-slate-900 text-pink-500 focus:ring-pink-500 w-3 h-3"
+                          className="rounded text-pink-500 focus:ring-pink-500 w-3 h-3"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                         />
                         <span>Magic & Accounting View</span>
                       </label>
@@ -487,8 +501,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                             })
                           }
                           onBlur={flushPendingCommits}
-                          className="w-14 bg-slate-900 border rounded px-1 py-0.5 text-center font-bold focus:outline-none"
-                          style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                          className="w-14 border rounded px-1 py-0.5 text-center font-bold focus:outline-none"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                         />
                         <span className="opacity-60" style={{ color: theme.textColor }}>x</span>
                       </div>
@@ -506,15 +520,15 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                             })
                           }
                           onBlur={flushPendingCommits}
-                          className="w-16 bg-slate-900 border rounded px-1 py-0.5 text-center font-bold focus:outline-none"
-                          style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                          className="w-16 border rounded px-1 py-0.5 text-center font-bold focus:outline-none"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                         />
                         <span className="opacity-60 text-[10px]" style={{ color: theme.textColor }}>Love</span>
                       </div>
 
                       <span 
-                        className="text-[11px] px-2 py-0.5 rounded bg-slate-900 border"
-                        style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                        className="text-[11px] px-2 py-0.5 rounded border"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                       >
                         {count} {count === 1 ? 'pony' : 'ponies'}
                       </span>
@@ -525,8 +539,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                           flushPendingCommits();
                           setEditingBadgeStatusId(status.id);
                         }}
-                        className="p-1 rounded bg-purple-950/30 hover:bg-purple-900/50 border cursor-pointer"
-                        style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                        className="p-1 rounded border hover:opacity-80 cursor-pointer"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                         title="Edit Badge Page"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -552,8 +566,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
               {/* Add Store Border Form */}
               <form 
                 onSubmit={handleAddBorder}
-                className="bg-slate-950/70 p-4 rounded-xl border space-y-3 theme-border-hover"
-                style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                className="p-4 rounded-xl border space-y-3 theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
               >
                 <span className="font-bold block text-xs uppercase tracking-wider" style={{ color: theme.textColor }}>
                   Create Border
@@ -568,8 +582,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                       placeholder="e.g. Celestial Starlight"
                       value={newBorderName}
                       onChange={(e) => setNewBorderName(e.target.value)}
-                      className="w-full bg-slate-900 border rounded-lg px-3 py-1.5 focus:outline-none"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                      className="w-full border rounded-lg px-3 py-1.5 focus:outline-none"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                     />
                   </div>
 
@@ -581,8 +595,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                       step="50"
                       value={newBorderPrice}
                       onChange={(e) => setNewBorderPrice(Number(e.target.value))}
-                      className="w-full bg-slate-900 border rounded-lg px-3 py-1.5 font-bold focus:outline-none"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                      className="w-full border rounded-lg px-3 py-1.5 font-bold focus:outline-none"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                     />
                   </div>
 
@@ -594,8 +608,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                         value={isImageIcon(newBorderIcon) ? '🖼️' : newBorderIcon}
                         disabled={isImageIcon(newBorderIcon)}
                         onChange={(e) => setNewBorderIcon(e.target.value)}
-                        className="w-full bg-slate-900 border rounded-lg px-2 py-1.5 text-center font-bold focus:outline-none"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                        className="w-full border rounded-lg px-2 py-1.5 text-center font-bold focus:outline-none"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                       />
                       <label className="cursor-pointer shrink-0">
                         <input
@@ -615,7 +629,12 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                             }
                           }}
                         />
-                        <span className="text-[10px] bg-slate-800 px-2 py-1 rounded hover:bg-slate-700 border border-slate-700">Img</span>
+                        <span
+                          className="text-[10px] px-2 py-1 rounded border hover:opacity-80 transition-opacity"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                        >
+                          Img
+                        </span>
                       </label>
                     </div>
                   </div>
@@ -635,7 +654,7 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   <button
                     type="submit"
                     className="px-4 py-1.5 rounded-lg font-bold flex items-center gap-1.5 shadow-md border cursor-pointer"
-                    style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                    style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                   >
                     <Plus className="w-3.5 h-3.5" style={{ color: theme.buttonTextColor }} />
                     Add Border to Exchange
@@ -653,8 +672,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                   {storeBorders.map((b) => (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between gap-3 bg-slate-950/60 p-3 rounded-xl border text-xs theme-border-hover"
-                      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                      className="flex items-center justify-between gap-3 p-3 rounded-xl border text-xs theme-border-hover"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <span 
@@ -683,8 +702,8 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
                             value={borderPriceDrafts[b.id] ?? b.price}
                             onChange={(e) => handleUpdateBorderPrice(b.id, Number(e.target.value), false)}
                             onBlur={(e) => handleUpdateBorderPrice(b.id, Number(e.target.value), true)}
-                            className="w-20 bg-slate-900 border rounded px-1.5 py-0.5 text-center font-bold focus:outline-none text-xs"
-                            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                            className="w-20 border rounded px-1.5 py-0.5 text-center font-bold focus:outline-none text-xs"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                           />
                           <span className="opacity-60 text-[10px]" style={{ color: theme.textColor }}>Love</span>
                         </div>
@@ -708,13 +727,13 @@ export const StatusManagerModal: React.FC<StatusManagerModalProps> = ({
 
         {/* Footer */}
         <div 
-          className="px-6 py-4 bg-slate-950 border-t flex justify-end"
-          style={{ borderColor: theme.borderColor }}
+          className="px-6 py-4 border-t flex justify-end"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <button
             onClick={handleClose}
             className="px-5 py-2 rounded-xl font-bold text-xs border cursor-pointer theme-border-hover"
-            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
           >
             Done
           </button>

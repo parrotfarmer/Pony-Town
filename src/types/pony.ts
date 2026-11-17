@@ -183,19 +183,6 @@ export interface InBetweenFlow {
   relationshipDays?: number;
 }
 
-export interface NetworkMetrics {
-  totalPonies: number;
-  totalConnections: number;
-  totalLovePerDay: number;
-  totalSpendableLove: number;
-  totalOverallLove: number;
-  totalMagicalPower: number; // in Mega-Thaums (MT)
-  networkResonanceBonus: number;
-  averageYieldPerPony: number;
-  highestYieldPony: { name: string; rate: number } | null;
-  topRecipientPony: { name: string; icon: string; receivedDaily: number; totalReceived: number } | null;
-}
-
 export interface HarvestTimePoint {
   date: string;
   timestamp: number;

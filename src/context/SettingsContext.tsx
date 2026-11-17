@@ -87,6 +87,7 @@ export interface AdminAppSettings {
   allowLiveFlowAnimations: boolean;
   allowAutoDailyAccrual: boolean;
   allowProfileBorders: boolean;
+  websiteBgImage: string;
   perkPrices: Record<string, number>;
 }
 
@@ -102,6 +103,7 @@ export const DEFAULT_ADMIN_SETTINGS: AdminAppSettings = {
   allowLiveFlowAnimations: true,
   allowAutoDailyAccrual: false,
   allowProfileBorders: true,
+  websiteBgImage: '',
   perkPrices: {
     bgColor: 500,
     textColor: 500,

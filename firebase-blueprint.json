@@ -159,6 +159,7 @@
         "allowLivePulseUpdates": { "type": "boolean" },
         "allowLiveFlowAnimations": { "type": "boolean" },
         "allowAutoDailyAccrual": { "type": "boolean" },
+        "websiteBgImage": { "type": "string" },
         "updatedAt": { "type": "string" }
       }
     }

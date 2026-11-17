@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import CreatableSelect from 'react-select/creatable';
 import { PonyNode, CustomStatus, ConnectionType, DEFAULT_PONY_CAPACITY } from '../types/pony';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Smile } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { ImageCropperModal } from './ImageCropperModal';
-import { EmoticonIconPicker } from './EmoticonIconPicker';
 import { resizeImageToMax } from '../utils/imageUtils';
 import { getSortedStatuses } from '../utils/calculations';
 
@@ -30,26 +28,8 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
   initialPos,
   canAddPony = true,
 }) => {
-  const { speciesOptions, elementOptions, locationOptions, loading: settingsLoading, theme, adminSettings } = useSettings();
-  const { isAdmin, user } = useAuth();
-
-  const selectStyles = {
-    control: (base: any) => ({
-      ...base,
-      backgroundColor: '#030711',
-      borderColor: '#a855f7',
-      borderRadius: '0.5rem',
-      padding: '2px',
-      color: '#fff',
-    }),
-    singleValue: (base: any) => ({ ...base, color: '#fff' }),
-    menu: (base: any) => ({ ...base, backgroundColor: '#0f172a', border: '1px solid #7e22ce' }),
-    option: (base: any, state: any) => ({
-      ...base,
-      backgroundColor: state.isFocused ? '#334155' : '#0f172a',
-      color: '#fff',
-    }),
-  };
+  const { theme, adminSettings } = useSettings();
+  const { user } = useAuth();
 
   const [name, setName] = useState('');
   const [species, setSpecies] = useState('');
@@ -67,8 +47,7 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
   const [cutieMarkMeaning, setCutieMarkMeaning] = useState('');
   const [residence, setResidence] = useState('');
   const [cropperRawImage, setCropperRawImage] = useState<string | null>(null);
-
-  // Removed default options setting logic
+  const [isEditingEmoticon, setIsEditingEmoticon] = useState(false);
 
   if (!isOpen) return null;
 
@@ -124,6 +103,8 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
     setCutieMark('');
     setCutieMarkMeaning('');
     setResidence('');
+    setAvatarIcon('💖');
+    setIsEditingEmoticon(false);
   };
 
   const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,24 +120,28 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
     }
   };
 
-
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 py-8 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
       <div 
-        className="relative w-full max-w-lg max-h-[85vh] bg-slate-900 border rounded-2xl shadow-2xl flex flex-col my-auto overflow-hidden theme-border-hover"
-        style={{ borderColor: theme.borderColor }}
+        className="relative w-full max-w-lg max-h-[85vh] border rounded-2xl shadow-2xl flex flex-col my-auto overflow-hidden theme-border-hover"
+        style={{ borderColor: effectiveBorderColor, backgroundColor: theme.bgColor, color: theme.textColor }}
       >
         
         {/* Header */}
         <div 
-          className="flex items-center justify-between px-6 py-4 border-b bg-slate-950/60 shrink-0"
-          style={{ borderColor: theme.borderColor }}
+          className="flex items-center justify-between px-6 py-4 border-b shrink-0"
+          style={{ borderColor: effectiveBorderColor, backgroundColor: theme.bgColor }}
         >
           <div>
-            <h2 className="text-base font-bold text-white">Add Pony</h2>
+            <h2 className="text-base font-bold" style={{ color: theme.textColor }}>Add Pony</h2>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white">
+          <button 
+            onClick={onClose} 
+            className="p-1.5 rounded-lg border hover:opacity-80 transition-opacity cursor-pointer"
+            style={{ borderColor: effectiveBorderColor, backgroundColor: theme.bgColor, color: theme.textColor }}
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -166,18 +151,36 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
           {/* Name & Avatar Icon */}
           <div className="flex items-center gap-3">
             <div className="relative group/icon w-14 h-14 flex-shrink-0">
-              {avatarIcon.startsWith('data:image') || avatarIcon.startsWith('http') ? (
-                <img 
-                  src={avatarIcon} 
-                  alt="Preview" 
-                  className="w-full h-full rounded-xl object-cover border" 
-                  style={{ borderColor: theme.borderColor }}
-                />
+              {avatarIcon.startsWith('data:image') || avatarIcon.startsWith('http') || isEditingEmoticon ? (
+                isEditingEmoticon ? (
+                  <input
+                    type="text"
+                    autoFocus
+                    maxLength={24}
+                    value={avatarIcon.startsWith('data:image') || avatarIcon.startsWith('http') ? '' : avatarIcon}
+                    onChange={(e) => setAvatarIcon(e.target.value)}
+                    onBlur={() => setIsEditingEmoticon(false)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === 'Escape') setIsEditingEmoticon(false);
+                    }}
+                    placeholder="🦄"
+                    className="w-full h-full rounded-xl border-2 text-center text-sm font-bold focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                ) : (
+                  <img 
+                    src={avatarIcon} 
+                    alt="Preview" 
+                    className="w-full h-full rounded-xl object-cover border" 
+                    style={{ borderColor: effectiveBorderColor }}
+                  />
+                )
               ) : (
                 <div 
-                  className="w-full h-full rounded-xl bg-slate-950 border flex items-center justify-center font-bold overflow-hidden px-1 text-center"
+                  className="w-full h-full rounded-xl border flex items-center justify-center font-bold overflow-hidden px-1 text-center"
                   style={{
-                    borderColor: theme.borderColor,
+                    backgroundColor: theme.bgColor,
+                    borderColor: effectiveBorderColor,
                     color: theme.textColor,
                     fontSize: [...avatarIcon].length >= 4 ? '11px' : [...avatarIcon].length >= 2 ? '15px' : '24px',
                   }}
@@ -185,24 +188,28 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                   {avatarIcon}
                 </div>
               )}
-              {adminSettings.allowAvatarImageUpload && (
-                <>
-                  <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl opacity-0 group-hover/icon:opacity-100 transition-opacity cursor-pointer" title="Upload custom avatar image">
-                    <Upload className="w-4 h-4 text-white" />
-                    <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
-                  </label>
-                  <span
-                    className="pointer-events-none absolute -bottom-1 -right-1 w-4 h-4 rounded-full border flex items-center justify-center shadow"
-                    style={{
-                      backgroundColor: theme.buttonColor,
-                      color: theme.buttonTextColor,
-                      borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
-                    }}
-                  >
-                    <Upload className="w-2.5 h-2.5" />
-                  </span>
-                </>
+              {adminSettings.allowAvatarImageUpload && !avatarIcon.startsWith('data:image') && !avatarIcon.startsWith('http') && !isEditingEmoticon && (
+                <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl opacity-0 group-hover/icon:opacity-100 transition-opacity cursor-pointer" title="Upload custom avatar image">
+                  <Upload className="w-4 h-4 text-white" />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
+                </label>
               )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditingEmoticon(!isEditingEmoticon);
+                }}
+                className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center shadow-md cursor-pointer hover:scale-110 transition-transform z-20"
+                style={{
+                  backgroundColor: theme.buttonColor,
+                  color: theme.buttonTextColor,
+                  borderColor: effectiveBorderColor,
+                }}
+                title="Edit emoji or emoticon"
+              >
+                <Smile className="w-2.5 h-2.5" />
+              </button>
             </div>
             <div className="flex-1">
               <label htmlFor="add-pony-name" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>Pony Name *</label>
@@ -214,39 +221,10 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                 placeholder=""
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 font-bold focus:outline-none theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-lg px-3 py-2 font-bold focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
-          </div>
-
-          {/* Emoticon / Emoji Profile Icon Picker */}
-          <div className="bg-slate-950/60 p-3 rounded-xl border space-y-1.5" style={{ borderColor: theme.borderColor }}>
-            <div className="flex items-center justify-between gap-2">
-              <label className="text-[10px] font-bold uppercase block opacity-70" style={{ color: theme.textColor }}>
-                {adminSettings.allowAvatarImageUpload ? 'Profile Icon / Custom Avatar Image' : 'Profile Icon (Emoji / Emoticon)'}
-              </label>
-              {adminSettings.allowAvatarImageUpload && (
-                <label
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[10px] font-bold cursor-pointer hover:opacity-90 transition-all shadow-sm"
-                  style={{
-                    backgroundColor: theme.buttonColor,
-                    color: theme.buttonTextColor,
-                    borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
-                  }}
-                >
-                  <Upload className="w-3 h-3" />
-                  <span>Upload Image</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
-                </label>
-              )}
-            </div>
-            <EmoticonIconPicker
-              value={avatarIcon}
-              onChange={setAvatarIcon}
-              theme={theme}
-              compact={true}
-            />
           </div>
 
           {/* Species & Element */}
@@ -261,8 +239,8 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                 type="text"
                 value={species}
                 onChange={(e) => setSpecies(e.target.value)}
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
             <div>
@@ -275,8 +253,8 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                 type="text"
                 value={element}
                 onChange={(e) => setElement(e.target.value)}
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
           </div>
@@ -294,8 +272,8 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                 value={favoriteTreat}
                 onChange={(e) => setFavoriteTreat(e.target.value)}
                 placeholder=""
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
             <div>
@@ -309,8 +287,8 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                 value={hobby}
                 onChange={(e) => setHobby(e.target.value)}
                 placeholder=""
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
             <div>
@@ -324,8 +302,8 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                 value={personality}
                 onChange={(e) => setPersonality(e.target.value)}
                 placeholder=""
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
             <div>
@@ -339,12 +317,46 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
                 value={magicalAffinity}
                 onChange={(e) => setMagicalAffinity(e.target.value)}
                 placeholder=""
-                className="w-full bg-slate-950 border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
             </div>
           </div>
 
+          {/* Cutie Mark & Location */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="add-pony-cutieMark" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                Cutie Mark
+              </label>
+              <input
+                id="add-pony-cutieMark"
+                name="cutieMark"
+                type="text"
+                value={cutieMark}
+                onChange={(e) => setCutieMark(e.target.value)}
+                placeholder=""
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+              />
+            </div>
+            <div>
+              <label htmlFor="add-pony-location" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                Location
+              </label>
+              <input
+                id="add-pony-location"
+                name="location"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+              />
+            </div>
+          </div>
+
+          {/* Backstory */}
           <div>
             <label htmlFor="add-pony-backstory" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
               Backstory
@@ -356,40 +368,8 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
               value={backstory}
               onChange={(e) => setBackstory(e.target.value)}
               placeholder=""
-              className="w-full bg-slate-950 border rounded-lg p-2.5 focus:outline-none resize-none theme-border-hover"
-              style={{ borderColor: theme.borderColor, color: theme.textColor }}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="add-pony-cutieMark" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
-              Cutie Mark
-            </label>
-            <input
-              id="add-pony-cutieMark"
-              name="cutieMark"
-              type="text"
-              value={cutieMark}
-              onChange={(e) => setCutieMark(e.target.value)}
-              placeholder=""
-              className="w-full bg-slate-950 border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
-              style={{ borderColor: theme.borderColor, color: theme.textColor }}
-            />
-          </div>
-
-          {/* Location */}
-          <div>
-            <label htmlFor="add-pony-location" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
-              Location
-            </label>
-            <input
-              id="add-pony-location"
-              name="location"
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="w-full bg-slate-950 border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
-              style={{ borderColor: theme.borderColor, color: theme.textColor }}
+              className="w-full border rounded-lg p-2.5 focus:outline-none resize-none theme-border-hover"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
             />
           </div>
 
@@ -403,28 +383,28 @@ export const AddPonyModal: React.FC<AddPonyModalProps> = ({
               placeholder=""
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="w-full bg-slate-950 border rounded-lg p-2.5 focus:outline-none resize-none theme-border-hover"
-              style={{ borderColor: theme.borderColor, color: theme.textColor }}
+              className="w-full border rounded-lg p-2.5 focus:outline-none resize-none theme-border-hover"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
             />
           </div>
 
           {/* Actions */}
           <div 
             className="flex justify-end gap-2 pt-2 border-t"
-            style={{ borderColor: theme.borderColor }}
+            style={{ borderColor: effectiveBorderColor }}
           >
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 font-medium"
-              style={{ color: theme.textColor }}
+              className="px-4 py-2 rounded-xl border font-medium cursor-pointer hover:opacity-80 transition-all theme-border-hover"
+              style={{ backgroundColor: theme.bgColor, color: theme.textColor, borderColor: effectiveBorderColor }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl font-bold shadow-lg border transition-all cursor-pointer theme-border-hover"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+              className="px-5 py-2 rounded-xl font-bold shadow-lg border transition-all cursor-pointer hover:opacity-90 theme-border-hover"
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
             >
               Add Pony
             </button>

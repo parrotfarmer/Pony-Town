@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { PonyNode, WebConnection, CustomStatus, LoveSplitAllocation } from '../types/pony';
 import { 
   calculateDaysActive, 
@@ -122,21 +122,30 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
     });
   };
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-3xl max-h-[90vh] bg-slate-900 border rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 theme-border-hover"
-        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+        className="relative w-full max-w-3xl max-h-[90vh] border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
+        style={{
+          backgroundColor: theme.bgColor,
+          color: theme.textColor,
+          borderColor: effectiveBorderColor,
+        }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-3.5 border-b bg-slate-950/80"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="flex items-center justify-between px-6 py-3.5 border-b"
+          style={{
+            backgroundColor: theme.bgColor,
+            borderColor: effectiveBorderColor,
+          }}
         >
           <div className="flex items-center gap-3">
             <PonyAvatar pony={pony} theme={theme} size="md" />
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <h2 className="text-base font-bold flex items-center gap-2" style={{ color: theme.textColor }}>
                 <span>Connected Ponies ({ponyConnections.length})</span>
               </h2>
             </div>
@@ -144,7 +153,12 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg border hover:opacity-80 transition-colors cursor-pointer"
+            style={{
+              backgroundColor: theme.bgColor,
+              color: theme.textColor,
+              borderColor: effectiveBorderColor,
+            }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -153,17 +167,26 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
         {/* Allocation Bar & Split Button Header Bar (Owner or Admin Only) */}
         {(isAdmin || isOwner) && (
           <div 
-            className="flex flex-wrap items-center justify-between gap-3 px-6 py-2.5 bg-slate-950/90 border-b"
-            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            className="flex flex-wrap items-center justify-between gap-3 px-6 py-2.5 border-b"
+            style={{
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
+            }}
           >
             <div className="flex items-center gap-3 text-xs">
               <span style={{ color: theme.textColor }}>
                 Allocations Remaining: <strong className="font-extrabold" style={{ color: theme.textColor }}>{remainingAllocation}</strong> / {allocatableCapacity} L/d
               </span>
-              <div className="w-28 bg-slate-800 rounded-full h-2 overflow-hidden shrink-0 border" style={{ borderColor: theme.borderColor }}>
+              <div
+                className="w-28 rounded-full h-2 overflow-hidden shrink-0 border"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+              >
                 <div
-                  className="h-full bg-gradient-to-r from-pink-500 to-rose-500 transition-all duration-300"
-                  style={{ width: `${allocatableCapacity > 0 ? Math.min(100, (totalAllocated / allocatableCapacity) * 100) : 0}%` }}
+                  className="h-full transition-all duration-300"
+                  style={{
+                    backgroundColor: theme.buttonColor,
+                    width: `${allocatableCapacity > 0 ? Math.min(100, (totalAllocated / allocatableCapacity) * 100) : 0}%`,
+                  }}
                 />
               </div>
             </div>
@@ -176,7 +199,7 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                 style={{ 
                   backgroundColor: theme.buttonColor, 
                   color: theme.buttonTextColor, 
-                  borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor 
+                  borderColor: effectiveBorderColor,
                 }}
                 title="Split allocatable capacity evenly across connected ponies"
               >
@@ -190,8 +213,8 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
         {/* Search Bar for Connected Ponies */}
         {ponyConnections.length > 0 && (
           <div 
-            className="px-6 py-2 bg-slate-950/50 border-b flex items-center"
-            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            className="px-6 py-2 border-b flex items-center"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
           >
             <div className="relative w-full flex items-center">
               <Search className="w-3.5 h-3.5 absolute left-3 pointer-events-none opacity-60" style={{ color: theme.textColor }} />
@@ -200,13 +223,13 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                 placeholder="Search connected ponies..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-900 border rounded-xl pl-8 pr-8 py-1.5 text-xs focus:outline-none theme-border-hover"
-                style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-xl pl-8 pr-8 py-1.5 text-xs focus:outline-none theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 opacity-60 hover:opacity-100"
+                  className="absolute right-2.5 opacity-60 hover:opacity-100 cursor-pointer"
                   style={{ color: theme.textColor }}
                 >
                   <X className="w-3.5 h-3.5" />
@@ -219,7 +242,10 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
         {/* Content Body: List of Connected Ponies (Less tall cards) */}
         <div className="p-4 sm:p-5 space-y-2.5 overflow-y-auto max-h-[65vh] text-xs">
           {filteredConnections.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-500 italic bg-slate-950/40 rounded-xl border border-slate-800">
+            <div
+              className="py-12 text-center text-xs opacity-60 italic rounded-xl border"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+            >
               {searchQuery ? 'No connected ponies match search.' : 'No connected ponies linked yet.'}
             </div>
           ) : (
@@ -239,17 +265,14 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
 
               const donorInfo = currentPonyFlow?.donors.find((d) => d.donor.id === otherPony.id);
               const receivedDaily = donorInfo?.daily || 0;
-              const receivedTotal = donorInfo?.total || 0;
               const givenDaily = splitAmount;
-              const givenTotal = Math.round(splitAmount * relDays);
-              const netTotal = receivedTotal - givenTotal;
               const netDaily = receivedDaily - givenDaily;
 
               return (
                 <div
                   key={conn.id}
-                  className="p-3 bg-slate-950/70 rounded-xl border hover:border-pink-500/40 transition-all theme-border-hover space-y-2"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                  className="p-3 rounded-xl border transition-all theme-border-hover space-y-2"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                     {/* Left: Avatar + Identity (Icon and Name only) */}
@@ -290,8 +313,8 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                     {/* Center: Trade Deficit (Owner & Admin only, theme compliant, compact) */}
                     {(isAdmin || isOwner) && (
                       <div 
-                        className="text-[10px] bg-slate-900/90 px-2.5 py-1 rounded-xl border space-y-0.5 w-48 shrink-0"
-                        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                        className="text-[10px] px-2.5 py-1 rounded-xl border space-y-0.5 w-48 shrink-0"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <span className="opacity-75" style={{ color: theme.textColor }}>Received:</span>
@@ -303,7 +326,7 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                         </div>
                         <div 
                           className="flex items-center justify-between gap-2 border-t pt-0.5"
-                          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                          style={{ borderColor: effectiveBorderColor }}
                         >
                           <span className="opacity-75" style={{ color: theme.textColor }}>Trade Deficit:</span>
                           <span className="font-bold" style={{ color: theme.textColor }}>
@@ -319,8 +342,8 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                         {/* Allocation input */}
                         {(isAdmin || isOwner) && (
                           <div 
-                            className="flex items-center gap-1.5 bg-slate-900 px-2 py-0.5 rounded-lg border text-xs"
-                            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                            className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-xs"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                           >
                             <span className="text-[10px] font-semibold" style={{ color: theme.textColor }}>{pct}%</span>
                             <input
@@ -329,8 +352,8 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                               max={allocatableCapacity}
                               value={splitAmount}
                               onChange={(e) => handleUpdateSplitAmount(otherPony.id, Number(e.target.value) || 0)}
-                              className="w-14 bg-slate-950 border rounded px-1 py-0.5 font-bold text-center text-xs focus:outline-none"
-                              style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                              className="w-14 border rounded px-1 py-0.5 font-bold text-center text-xs focus:outline-none"
+                              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                             />
                             <span className="text-[10px] opacity-70" style={{ color: theme.textColor }}>L/d</span>
                           </div>
@@ -367,7 +390,7 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                             onNavigateToPony(otherPony.id);
                           }}
                           className="px-2.5 py-1 rounded-lg font-bold text-xs border transition-all shadow theme-border-hover hover:scale-105 cursor-pointer"
-                          style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+                          style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                           title="Open profile"
                         >
                           <span>Profile</span>
@@ -376,11 +399,14 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
 
                       {/* Secret Permissions Checkbox (Owner or Admin Only) - Positioned directly below the allocation rate */}
                       {(isAdmin || isOwner) && (
-                        <label className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] cursor-pointer transition-colors ${
-                          isSecretAllowed 
-                            ? 'bg-pink-950/40 border-pink-500/50 text-white' 
-                            : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white'
-                        }`}>
+                        <label
+                          className="flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] cursor-pointer transition-colors"
+                          style={{
+                            backgroundColor: isSecretAllowed ? `${theme.buttonColor}30` : theme.bgColor,
+                            borderColor: isSecretAllowed ? (theme.borderHoverColor || theme.buttonColor) : effectiveBorderColor,
+                            color: theme.textColor,
+                          }}
+                        >
                           <input
                             type="checkbox"
                             checked={isSecretAllowed}
@@ -391,7 +417,8 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                                 : currentAllowed.filter((id) => id !== otherPony.id);
                               onUpdatePony?.({ ...pony, allowedViewerPonyIds: updatedAllowed });
                             }}
-                            className="rounded border-slate-700 bg-slate-800 text-pink-500 focus:ring-pink-500 w-3 h-3"
+                            className="rounded w-3 h-3"
+                            style={{ accentColor: theme.buttonColor }}
                           />
                           <span className="font-semibold whitespace-nowrap">Secret Permissions</span>
                         </label>
@@ -407,7 +434,7 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                           type="checkbox"
                           checked={disconnectCheckboxChecked}
                           onChange={(e) => setDisconnectCheckboxChecked(e.target.checked)}
-                          className="w-3.5 h-3.5 rounded border-red-700 bg-slate-900 text-red-500 focus:ring-red-500"
+                          className="w-3.5 h-3.5 rounded accent-red-500"
                         />
                         <span>Confirm disconnecting {otherPony.name}?</span>
                       </label>
@@ -419,11 +446,12 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                             setDisconnectingConnId(null);
                             setDisconnectCheckboxChecked(false);
                           }}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
                             disconnectCheckboxChecked
-                              ? 'bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-900/50 cursor-pointer'
-                              : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                              ? 'bg-red-600 hover:bg-red-500 text-white border-red-500 shadow-md shadow-red-900/50 cursor-pointer'
+                              : 'opacity-40 cursor-not-allowed'
                           }`}
+                          style={!disconnectCheckboxChecked ? { backgroundColor: theme.bgColor, color: theme.textColor, borderColor: effectiveBorderColor } : undefined}
                         >
                           Confirm
                         </button>
@@ -433,7 +461,8 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
                             setDisconnectingConnId(null);
                             setDisconnectCheckboxChecked(false);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg border text-xs font-semibold hover:opacity-80 cursor-pointer"
+                          style={{ backgroundColor: theme.bgColor, color: theme.textColor, borderColor: effectiveBorderColor }}
                         >
                           Cancel
                         </button>
@@ -448,13 +477,13 @@ export const ConnectedPoniesModal: React.FC<ConnectedPoniesModalProps> = ({
 
         {/* Footer */}
         <div
-          className="px-6 py-3 bg-slate-950 border-t flex justify-end"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="px-6 py-3 border-t flex justify-end"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl font-bold text-xs border cursor-pointer theme-border-hover"
-            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
           >
             Close
           </button>

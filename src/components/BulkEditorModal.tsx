@@ -22,10 +22,7 @@ import {
   Plus, 
   Trash2, 
   Copy, 
-  Sliders, 
   Sparkles,
-  Heart,
-  ArrowRight,
   Search,
   Eye,
   Upload
@@ -73,6 +70,7 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
   onNavigateToPony,
 }) => {
   const { theme, adminSettings } = useSettings();
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
   const [sortKey, setSortKey] = useState<PonySortKey>('name_asc');
   const [modalSearchQuery, setModalSearchQuery] = useState('');
 
@@ -120,14 +118,14 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-7xl max-h-[92vh] bg-slate-900 border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
-        style={{ borderColor: theme.borderColor }}
+        className="relative w-full max-w-7xl max-h-[92vh] border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
+        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
       >
         
         {/* Modal Header */}
         <div 
-          className="flex items-center justify-between px-6 py-4 border-b bg-slate-950/60"
-          style={{ borderColor: theme.borderColor }}
+          className="flex items-center justify-between px-6 py-4 border-b"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-3">
             <div>
@@ -146,7 +144,7 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
             <button
               onClick={onOpenStatusManager}
               className="px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer theme-border-hover"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
             >
               <Sparkles className="w-3.5 h-3.5" style={{ color: theme.buttonTextColor }} />
               Statuses
@@ -155,7 +153,7 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
             <button
               onClick={handleQuickAdd}
               className="px-4 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-md transition-all border cursor-pointer theme-border-hover"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
             >
               <Plus className="w-3.5 h-3.5" />
               Add Pony
@@ -163,7 +161,8 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+              className="p-1.5 rounded-lg border hover:opacity-80 cursor-pointer transition-opacity"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
             >
               <X className="w-4 h-4" />
             </button>
@@ -174,19 +173,19 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
         <div className="flex-1 overflow-auto p-6">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 flex-1 min-w-[200px] max-w-md relative">
-              <Search className="w-3.5 h-3.5 absolute left-3 pointer-events-none" style={{ color: theme.textColor }} />
+              <Search className="w-3.5 h-3.5 absolute left-3 pointer-events-none opacity-70" style={{ color: theme.textColor }} />
               <input
                 type="text"
                 value={modalSearchQuery}
                 onChange={(e) => setModalSearchQuery(e.target.value)}
                 placeholder="Search ponies in full table..."
-                className="w-full bg-slate-950 border rounded-xl pl-9 pr-8 py-1.5 text-xs placeholder-slate-400 focus:outline-none shadow-inner theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-xl pl-9 pr-8 py-1.5 text-xs focus:outline-none shadow-inner theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
               {modalSearchQuery && (
                 <button
                   onClick={() => setModalSearchQuery('')}
-                  className="absolute right-2.5 hover:opacity-100 opacity-70"
+                  className="absolute right-2.5 hover:opacity-100 opacity-70 cursor-pointer"
                   style={{ color: theme.textColor }}
                 >
                   <X className="w-3.5 h-3.5" />
@@ -199,11 +198,11 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
               <select
                 value={sortKey}
                 onChange={(e) => setSortKey(e.target.value as PonySortKey)}
-                className="bg-slate-950 border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 {PONY_SORT_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">
+                  <option key={opt.value} value={opt.value} style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>
                     {opt.label}
                   </option>
                 ))}
@@ -211,13 +210,13 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
             </div>
           </div>
           <div 
-            className="border rounded-xl bg-slate-950/70 theme-border-hover"
-            style={{ borderColor: theme.borderColor }}
+            className="border rounded-xl theme-border-hover overflow-x-auto"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
           >
-            <table className="min-w-max text-left text-xs" style={{ color: theme.textColor }}>
+            <table className="min-w-max text-left text-xs w-full" style={{ color: theme.textColor }}>
               <thead 
-                className="bg-slate-900/90 uppercase tracking-wider text-[11px] border-b"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="uppercase tracking-wider text-[11px] border-b"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 <tr>
                   <th className="py-3 px-3 font-semibold text-left whitespace-nowrap">
@@ -227,35 +226,35 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                     <span className="font-bold" style={{ color: theme.textColor }}>{headers.colSpeciesElement}</span>
                   </th>
                   <th className="py-3 px-3 font-semibold text-center whitespace-nowrap">
-                    <span className="text-slate-300 font-bold">{headers.colLoveDay}</span>
+                    <span className="font-bold" style={{ color: theme.textColor }}>{headers.colLoveDay}</span>
                   </th>
                   <th className="py-3 px-3 font-semibold text-left whitespace-nowrap">
-                    <span className="text-slate-300 font-bold">{headers.colStatus}</span>
+                    <span className="font-bold" style={{ color: theme.textColor }}>{headers.colStatus}</span>
                   </th>
                   <th className="py-3 px-3 font-semibold text-left whitespace-nowrap">
-                    <span className="text-slate-300 font-bold">{headers.colStartDate}</span>
+                    <span className="font-bold" style={{ color: theme.textColor }}>{headers.colStartDate}</span>
                   </th>
                   <th className="py-3 px-3 font-semibold text-center whitespace-nowrap">
-                    <span className="text-slate-300 font-bold">{headers.colDays}</span>
+                    <span className="font-bold" style={{ color: theme.textColor }}>{headers.colDays}</span>
                   </th>
                   <th className="py-3 px-3 font-semibold text-center whitespace-nowrap">
-                    <span className="text-slate-300 font-bold">{headers.colTotal}</span>
+                    <span className="font-bold" style={{ color: theme.textColor }}>{headers.colTotal}</span>
                   </th>
-                  <th className="py-3 px-3 font-semibold text-left whitespace-nowrap text-pink-300">
-                    <span className="text-pink-300 font-bold">{headers.colRecipient}</span>
+                  <th className="py-3 px-3 font-semibold text-left whitespace-nowrap">
+                    <span className="font-bold" style={{ color: theme.textColor }}>{headers.colRecipient}</span>
                   </th>
                   <th className="py-3 px-3 font-semibold text-center text-amber-400 whitespace-nowrap">Admin</th>
-                  <th className="py-3 px-3 font-semibold text-center text-pink-400 whitespace-nowrap">Payout %</th>
-                  <th className="py-3 px-3 font-semibold text-center text-purple-400 whitespace-nowrap">Treat</th>
+                  <th className="py-3 px-3 font-semibold text-center whitespace-nowrap" style={{ color: theme.textColor }}>Payout %</th>
+                  <th className="py-3 px-3 font-semibold text-center whitespace-nowrap" style={{ color: theme.textColor }}>Treat</th>
                   <th className="py-3 px-3 font-semibold text-right whitespace-nowrap">
-                    <span className="text-slate-300 font-bold">{headers.colActions}</span>
+                    <span className="font-bold" style={{ color: theme.textColor }}>{headers.colActions}</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-white/10">
                 {sortedAndFilteredPonies.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="py-8 text-center text-slate-400">
+                    <td colSpan={12} className="py-8 text-center opacity-70" style={{ color: theme.textColor }}>
                       No ponies found. Try adjusting your search query or sort order.
                     </td>
                   </tr>
@@ -266,12 +265,15 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                     const totalYield = calculatePonyAccumulatedLove(pony, targetDate, statuses);
 
                     return (
-                      <tr key={pony.id} className="hover:bg-purple-950/15 transition-colors">
+                      <tr key={pony.id} className="hover:bg-white/5 transition-colors">
                         {/* Name & Avatar */}
                         <td className="py-2.5 px-3">
                           <div className="flex items-center gap-2">
                             <div className="relative group/edit-avatar w-10 h-10 shrink-0">
-                              <div className="w-full h-full rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-base overflow-hidden shadow-sm">
+                              <div
+                                className="w-full h-full rounded-lg border flex items-center justify-center text-base overflow-hidden shadow-sm"
+                                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+                              >
                                 {pony.avatarIcon && pony.avatarIcon.startsWith('data:image') ? (
                                   <img src={pony.avatarIcon} alt="" className="w-full h-full object-cover" />
                                 ) : (
@@ -307,12 +309,14 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                                   type="text"
                                   value={pony.name}
                                   onChange={(e) => onUpdatePony({ ...pony, name: e.target.value })}
-                                  className="bg-transparent font-bold text-white hover:border-b hover:border-pink-500 focus:outline-none focus:border-b focus:border-pink-400 w-28"
+                                  className="bg-transparent font-bold hover:border-b focus:outline-none focus:border-b w-28"
+                                  style={{ color: theme.textColor }}
                                   placeholder="Pony Name"
                                 />
                                 <button
                                   onClick={() => onNavigateToPony(pony.id)}
-                                  className="p-1 rounded bg-slate-800 hover:bg-pink-600/30 text-slate-400 hover:text-pink-300 transition-colors"
+                                  className="p-1 rounded border hover:opacity-80 transition-opacity cursor-pointer"
+                                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                                   title="View Profile"
                                 >
                                   <Eye className="w-3 h-3" />
@@ -322,7 +326,8 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                                 type="text"
                                 value={pony.location}
                                 onChange={(e) => onUpdatePony({ ...pony, location: e.target.value })}
-                                className="bg-transparent text-[10px] text-slate-400 hover:border-b hover:border-slate-600 focus:outline-none w-24 block"
+                                className="bg-transparent text-[10px] opacity-70 hover:border-b focus:outline-none w-24 block"
+                                style={{ color: theme.textColor }}
                                 placeholder="Location"
                               />
                             </div>
@@ -335,14 +340,16 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                             type="text"
                             value={pony.species}
                             onChange={(e) => onUpdatePony({ ...pony, species: e.target.value })}
-                            className="bg-transparent text-xs text-pink-300 font-semibold border-b border-transparent hover:border-pink-500 focus:outline-none w-24 block mb-0.5"
+                            className="bg-transparent text-xs font-semibold border-b border-transparent focus:outline-none w-24 block mb-0.5"
+                            style={{ color: theme.textColor }}
                             placeholder="Species"
                           />
                           <input
                             type="text"
                             value={pony.element}
                             onChange={(e) => onUpdatePony({ ...pony, element: e.target.value })}
-                            className="bg-transparent text-[11px] text-slate-400 border-b border-transparent hover:border-slate-600 focus:outline-none w-28 block"
+                            className="bg-transparent text-[11px] opacity-70 border-b border-transparent focus:outline-none w-28 block"
+                            style={{ color: theme.textColor }}
                             placeholder="Element"
                           />
                         </td>
@@ -354,7 +361,8 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                             min="0"
                             value={pony.loveRatePerDay}
                             onChange={(e) => onUpdatePony({ ...pony, loveRatePerDay: Number(e.target.value) || 0 })}
-                            className="w-16 bg-slate-900 border border-pink-500/40 rounded px-1.5 py-1 text-pink-300 font-bold text-center focus:outline-none"
+                            className="w-16 border rounded px-1.5 py-1 font-bold text-center focus:outline-none"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                           />
                         </td>
 
@@ -363,15 +371,16 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                           <select
                             value={pony.status}
                             onChange={(e) => onUpdatePony({ ...pony, status: e.target.value })}
-                            className="bg-slate-900 border border-purple-500/30 rounded px-1.5 py-1 text-slate-200 text-xs focus:outline-none"
+                            className="border rounded px-1.5 py-1 text-xs focus:outline-none"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                           >
                             {statuses.map((s) => (
-                              <option key={s.id} value={s.id}>
+                              <option key={s.id} value={s.id} style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>
                                 {s.name} ({s.multiplier}x)
                               </option>
                             ))}
                           </select>
-                          <span className="text-[10px] text-purple-300/80 block mt-0.5">
+                          <span className="text-[10px] opacity-75 block mt-0.5" style={{ color: theme.textColor }}>
                             Eff: +{dailyEffective} Love/day
                           </span>
                         </td>
@@ -382,7 +391,8 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                             type="date"
                             value={pony.startDate}
                             onChange={(e) => onUpdatePony({ ...pony, startDate: e.target.value, customDaysOverride: null })}
-                            className="bg-slate-900 border border-purple-500/30 rounded px-1.5 py-1 text-slate-200 text-xs focus:outline-none"
+                            className="border rounded px-1.5 py-1 text-xs focus:outline-none"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                           />
                         </td>
 
@@ -397,15 +407,16 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                                 const val = e.target.value === '' ? null : Number(e.target.value);
                                 onUpdatePony({ ...pony, customDaysOverride: val });
                               }}
-                              className="w-12 bg-slate-900 border border-purple-500/30 rounded px-1 py-1 text-purple-200 font-semibold text-center focus:outline-none"
+                              className="w-12 border rounded px-1 py-1 font-semibold text-center focus:outline-none"
+                              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                             />
-                            <span className="text-slate-400 text-[10px]">d</span>
+                            <span className="opacity-70 text-[10px]" style={{ color: theme.textColor }}>d</span>
                           </div>
                         </td>
 
                         {/* Total Harvested Accumulated */}
                         <td className="py-2.5 px-3">
-                          <span className="font-extrabold text-pink-400 text-xs">
+                          <span className="font-extrabold text-xs" style={{ color: theme.textColor }}>
                             {totalYield.toLocaleString()}
                           </span>
                         </td>
@@ -420,13 +431,14 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                                 targetRecipientId: e.target.value || null,
                               })
                             }
-                            className="w-36 bg-slate-900 border border-pink-500/40 rounded px-2 py-1 text-pink-200 text-xs focus:outline-none focus:border-pink-400"
+                            className="w-36 border rounded px-2 py-1 text-xs focus:outline-none"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                           >
-                            <option value="">General Reservoir</option>
+                            <option value="" style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>General Reservoir</option>
                             {ponies
                               .filter((other) => other.id !== pony.id)
                               .map((other) => (
-                                <option key={other.id} value={other.id}>
+                                <option key={other.id} value={other.id} style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>
                                   ➔ {other.avatarIcon && other.avatarIcon.startsWith('data:image') ? '🖼️' : (other.avatarIcon || '💖')} {other.name}
                                 </option>
                               ))}
@@ -439,7 +451,8 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                             type="checkbox"
                             checked={!!pony.isAdmin}
                             onChange={(e) => onTogglePonyAdmin(pony.id, e.target.checked)}
-                            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 cursor-pointer"
+                            style={{ borderColor: effectiveBorderColor, backgroundColor: theme.bgColor }}
                           />
                         </td>
 
@@ -453,9 +466,10 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                               step="0.01"
                               value={pony.payoutPercentage || 0}
                               onChange={(e) => onUpdatePayout(pony.id, Number(e.target.value) || 0)}
-                              className="w-16 bg-slate-900 border border-pink-500/30 rounded px-1 py-1 text-pink-300 font-bold text-center focus:outline-none"
+                              className="w-16 border rounded px-1 py-1 font-bold text-center focus:outline-none"
+                              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                             />
-                            <span className="text-pink-500">%</span>
+                            <span className="opacity-70" style={{ color: theme.textColor }}>%</span>
                           </div>
                         </td>
 
@@ -474,13 +488,14 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                                 );
                               }
                             }}
-                            className="p-1.5 rounded bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-800/40"
+                            className="p-1.5 rounded border hover:opacity-80 cursor-pointer transition-opacity"
+                            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                             title="Give reservoir treat"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
                           </button>
                           {pony.treatsReceived ? (
-                            <div className="text-[9px] text-purple-400 mt-0.5">+{pony.treatsReceived}</div>
+                            <div className="text-[9px] opacity-80 mt-0.5" style={{ color: theme.textColor }}>+{pony.treatsReceived}</div>
                           ) : null}
                         </td>
 
@@ -489,14 +504,15 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => handleDuplicate(pony)}
-                              className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white"
+                              className="p-1.5 rounded border hover:opacity-80 cursor-pointer transition-opacity"
+                              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                               title="Duplicate"
                             >
                               <Copy className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => onDeletePony(pony.id)}
-                              className="p-1.5 rounded bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40"
+                              className="p-1.5 rounded bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 cursor-pointer"
                               title="Delete"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -513,21 +529,24 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-950 border-t border-purple-500/20 flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div
+          className="px-6 py-4 border-t flex flex-wrap items-center justify-between gap-4 text-xs"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+        >
           <div className="flex items-center gap-6">
             <div>
-              <span className="text-slate-400">Total Ponies:</span>{' '}
-              <strong className="text-white text-sm">{ponies.length}</strong>
+              <span className="opacity-70" style={{ color: theme.textColor }}>Total Ponies:</span>{' '}
+              <strong className="text-sm" style={{ color: theme.textColor }}>{ponies.length}</strong>
             </div>
             <div>
-              <span className="text-slate-400">Total Daily Inflow:</span>{' '}
-              <strong className="text-pink-400 text-sm">
+              <span className="opacity-70" style={{ color: theme.textColor }}>Total Daily Inflow:</span>{' '}
+              <strong className="text-sm" style={{ color: theme.textColor }}>
                 +{ponies.reduce((sum, p) => sum + calculatePonyDailyRate(p, statuses), 0).toLocaleString()} / day
               </strong>
             </div>
             <div>
-              <span className="text-slate-400">Total Harvested:</span>{' '}
-              <strong className="text-purple-300 text-sm">
+              <span className="opacity-70" style={{ color: theme.textColor }}>Total Harvested:</span>{' '}
+              <strong className="text-sm" style={{ color: theme.textColor }}>
                 {ponies.reduce((sum, p) => sum + calculatePonyAccumulatedLove(p, targetDate, statuses), 0).toLocaleString()} Love
               </strong>
             </div>
@@ -535,7 +554,8 @@ export const BulkEditorModal: React.FC<BulkEditorModalProps> = ({
 
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs shadow-md transition-all"
+            className="px-6 py-2 rounded-xl font-bold text-xs shadow-md transition-all border cursor-pointer hover:opacity-90"
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
           >
             Done
           </button>

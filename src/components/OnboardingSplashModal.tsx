@@ -1,23 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { CustomStatus, PonyNode } from '../types/pony';
-import { 
-  Sparkles, 
-  UserPlus, 
-  LogIn, 
-  ArrowRight, 
-  X, 
-  CheckCircle2, 
+import { CustomStatus, PonyNode, DEFAULT_PONY_CAPACITY } from '../types/pony';
+import {
+  UserPlus,
+  ArrowRight,
+  X,
+  CheckCircle2,
   AlertCircle,
-  ShieldCheck,
-  Image as ImageIcon,
   Upload,
-  KeyRound,
+  Smile,
   Mail,
-  ArrowLeft
+  ArrowLeft,
 } from 'lucide-react';
 import { ImageCropperModal } from './ImageCropperModal';
-import { EmoticonIconPicker } from './EmoticonIconPicker';
 import { useSettings } from '../context/SettingsContext';
 import { resizeImageToMax } from '../utils/imageUtils';
 import { getSortedStatuses } from '../utils/calculations';
@@ -45,7 +40,7 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
 
   const [step, setStep] = useState<'splash' | 'auth' | 'create_pony'>('splash');
   const [authMode, setAuthMode] = useState<'register' | 'signin' | 'forgot_password'>('register');
-  
+
   // Auth Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,17 +49,22 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
   const [authSuccessMsg, setAuthSuccessMsg] = useState<string | null>(null);
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
 
-  // Pony Creation Form State
+  // Pony Creation Form State (mirrors AddPonyModal)
   const [ponyName, setPonyName] = useState('');
-  const [avatarIcon, setAvatarIcon] = useState('🦄');
-  const [species, setSpecies] = useState('Alicorn');
-  const [element, setElement] = useState('Magic');
-  const [location, setLocation] = useState('Equestria');
+  const [species, setSpecies] = useState('');
+  const [element, setElement] = useState('');
+  const [location, setLocation] = useState('');
+  const [avatarIcon, setAvatarIcon] = useState('💖');
   const [notes, setNotes] = useState('');
-  const [secretSpecies, setSecretSpecies] = useState('');
-  const [secretElement, setSecretElement] = useState('');
-  const [secretNotes, setSecretNotes] = useState('');
+  const [favoriteTreat, setFavoriteTreat] = useState('');
+  const [hobby, setHobby] = useState('');
+  const [personality, setPersonality] = useState('');
+  const [backstory, setBackstory] = useState('');
+  const [magicalAffinity, setMagicalAffinity] = useState('');
+  const [cutieMark, setCutieMark] = useState('');
   const [cropperRawImage, setCropperRawImage] = useState<string | null>(null);
+  const [isEditingEmoticon, setIsEditingEmoticon] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const prevUserUidRef = useRef<string | null>(user?.uid || null);
   useEffect(() => {
@@ -77,15 +77,20 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
       setDisplayName('');
       setAuthError(null);
       setPonyName('');
-      setAvatarIcon('🦄');
-      setSpecies('Alicorn');
-      setElement('Magic');
-      setLocation('Equestria');
+      setSpecies('');
+      setElement('');
+      setLocation('');
+      setAvatarIcon('💖');
       setNotes('');
-      setSecretSpecies('');
-      setSecretElement('');
-      setSecretNotes('');
+      setFavoriteTreat('');
+      setHobby('');
+      setPersonality('');
+      setBackstory('');
+      setMagicalAffinity('');
+      setCutieMark('');
       setCropperRawImage(null);
+      setIsEditingEmoticon(false);
+      setUploadError(null);
     }
     prevUserUidRef.current = currUid;
   }, [isOpen, user]);
@@ -101,31 +106,36 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
     }
     if (!ponyName.trim()) return;
 
-    // Default to initial ranked status
     const defaultStatusId = getSortedStatuses(statuses)[0]?.id || 'active';
 
     const newPony: PonyNode = {
       id: `pony-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name: ponyName.trim().slice(0, 128),
-      species: species.trim() || 'Pony',
-      element: element.trim() || 'Love',
-      location: location.trim() || 'Equestria',
+      species: species.trim() || '',
+      element: element.trim() || '',
+      location: location.trim() || '',
       color: '#ec4899',
-      x: Math.floor(Math.random() * 400) + 200,
-      y: Math.floor(Math.random() * 400) + 200,
-      loveRatePerDay: 1000,
-      status: defaultStatusId,
+      accentColor: '#f472b6',
+      avatarIcon: avatarIcon.trim() || '💖',
+      notes: notes.trim(),
+      x: Math.round(450 + (Math.random() - 0.5) * 250),
+      y: Math.round(300 + (Math.random() - 0.5) * 180),
+      loveRatePerDay: DEFAULT_PONY_CAPACITY,
       startDate: new Date().toISOString().split('T')[0],
       customDaysOverride: null,
-      notes: notes.trim(),
-      avatarIcon: avatarIcon.trim() || '🦄',
+      status: defaultStatusId,
       ownerId: user.uid,
+      ownerName: user.displayName || user.email?.split('@')[0] || 'Community Member',
+      customData: {},
+      favoriteTreat,
+      hobby,
+      personality,
+      backstory,
+      magicalAffinity,
+      cutieMark,
       isOriginalAdmin: false,
-      secretSpecies: secretSpecies.trim() || undefined,
-      secretElement: secretElement.trim() || undefined,
-      secretNotes: secretNotes.trim() || undefined,
       allowedViewerPonyIds: [],
-      loveSplits: []
+      loveSplits: [],
     };
 
     if (onUpdateProfileDisplayName && user && ponyName.trim()) {
@@ -139,6 +149,20 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
     onAddPony(newPony);
     markOnboardingCompleted();
     onClose();
+  };
+
+  const handleIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadError(null);
+    try {
+      const resizedRaw = await resizeImageToMax(file, 400, 400);
+      setCropperRawImage(resizedRaw);
+    } catch (err: any) {
+      console.error('Image load error:', err);
+      setUploadError(err?.message || 'Could not load selected image. Please try another image.');
+    }
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -194,24 +218,51 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
     }
   };
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-300">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-purple-500/40 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
-          title="Close splash modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-300"
+      style={{
+        backgroundColor: theme.bgColor,
+        ...(adminSettings.websiteBgImage
+          ? {
+              backgroundImage: `url("${adminSettings.websiteBgImage.replace(/["\\\n\r]/g, '')}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+            }
+          : {}),
+      }}
+    >
+      <div
+        className={`relative w-full ${step === 'create_pony' ? 'max-w-lg max-h-[85vh] rounded-2xl' : 'max-w-xl max-h-[90vh] rounded-3xl'} border shadow-2xl overflow-hidden flex flex-col theme-border-hover`}
+        style={{
+          backgroundColor: theme.bgColor,
+          borderColor: effectiveBorderColor,
+          color: theme.textColor,
+        }}
+      >
+        {/* Close Button for Splash & Auth */}
+        {step !== 'create_pony' && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-10 p-2 rounded-xl border hover:opacity-80 transition-all cursor-pointer"
+            style={{
+              backgroundColor: theme.bgColor,
+              borderColor: effectiveBorderColor,
+              color: theme.textColor,
+            }}
+            title="Close splash modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Step 1: Splash Page */}
         {step === 'splash' && (
           <div className="p-8 text-center flex flex-col items-center justify-center space-y-6 overflow-y-auto min-h-[320px]">
-            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-indigo-300">
+            <h1 className="text-3xl font-black" style={{ color: theme.textColor }}>
               Welcome Ponies!
             </h1>
 
@@ -219,7 +270,12 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
               {user ? (
                 <button
                   onClick={() => setStep('create_pony')}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-pink-600/30 flex items-center justify-center gap-2 transition-all"
+                  className="w-full py-3.5 rounded-2xl font-bold text-sm shadow-xl border flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  style={{
+                    backgroundColor: theme.buttonColor,
+                    color: theme.buttonTextColor,
+                    borderColor: effectiveBorderColor,
+                  }}
                 >
                   <span>Register Pony</span>
                   <ArrowRight className="w-4 h-4" />
@@ -231,7 +287,12 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                       setAuthMode('register');
                       setStep('auth');
                     }}
-                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-pink-600/30 flex items-center justify-center gap-2 transition-all"
+                    className="w-full py-3.5 rounded-2xl font-bold text-sm shadow-xl border flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    style={{
+                      backgroundColor: theme.buttonColor,
+                      color: theme.buttonTextColor,
+                      borderColor: effectiveBorderColor,
+                    }}
                   >
                     <UserPlus className="w-4 h-4" />
                     <span>Register Pony</span>
@@ -242,7 +303,12 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                       setAuthMode('signin');
                       setStep('auth');
                     }}
-                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 whitespace-nowrap transition-all"
+                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl hover:opacity-80 font-bold text-xs border whitespace-nowrap transition-all cursor-pointer"
+                    style={{
+                      backgroundColor: theme.bgColor,
+                      color: theme.textColor,
+                      borderColor: effectiveBorderColor,
+                    }}
                   >
                     Sign In
                   </button>
@@ -256,37 +322,48 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
         {step === 'auth' && (
           <div className="p-6 space-y-4 overflow-y-auto">
             <div className="text-center space-y-1">
-              <h2 className="text-lg font-bold text-white">
-                {authMode === 'register' 
-                  ? 'Create Account' 
-                  : authMode === 'signin' 
-                    ? 'Sign In to Your Account' 
+              <h2 className="text-lg font-bold" style={{ color: theme.textColor }}>
+                {authMode === 'register'
+                  ? 'Create Account'
+                  : authMode === 'signin'
+                    ? 'Sign In to Your Account'
                     : 'Reset Your Password'}
               </h2>
               {authMode === 'forgot_password' && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs opacity-80" style={{ color: theme.textColor }}>
                   Firebase will send a password reset link to your email.
                 </p>
               )}
             </div>
 
             {authMode !== 'forgot_password' && (
-              <div className="grid grid-cols-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs max-w-sm mx-auto">
+              <div
+                className="grid grid-cols-2 p-1 rounded-xl border text-xs max-w-sm mx-auto"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+              >
                 <button
                   type="button"
                   onClick={() => { setAuthMode('register'); setAuthError(null); setAuthSuccessMsg(null); }}
-                  className={`py-2 font-bold rounded-lg transition-all ${
-                    authMode === 'register' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  className={`py-2 font-bold rounded-lg transition-all cursor-pointer ${
+                    authMode === 'register' ? '' : 'opacity-70 hover:opacity-100'
                   }`}
+                  style={authMode === 'register' ? {
+                    backgroundColor: theme.buttonColor,
+                    color: theme.buttonTextColor,
+                  } : { color: theme.textColor }}
                 >
                   Register
                 </button>
                 <button
                   type="button"
                   onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthSuccessMsg(null); }}
-                  className={`py-2 font-bold rounded-lg transition-all ${
-                    authMode === 'signin' ? 'bg-pink-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+                  className={`py-2 font-bold rounded-lg transition-all cursor-pointer ${
+                    authMode === 'signin' ? '' : 'opacity-70 hover:opacity-100'
                   }`}
+                  style={authMode === 'signin' ? {
+                    backgroundColor: theme.buttonColor,
+                    color: theme.buttonTextColor,
+                  } : { color: theme.textColor }}
                 >
                   Sign In
                 </button>
@@ -310,40 +387,42 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
             <form onSubmit={handleAuthSubmit} className="space-y-3 max-w-md mx-auto text-xs">
               {authMode === 'register' && (
                 <div>
-                  <label htmlFor="onboard-display-name" className="text-slate-300 font-medium block mb-1">Your Name / Display Name *</label>
+                  <label htmlFor="onboard-display-name" className="font-medium block mb-1" style={{ color: theme.textColor }}>Pony Name *</label>
                   <input
                     id="onboard-display-name"
                     name="displayName"
                     autoComplete="name"
                     type="text"
                     required
-                    placeholder="e.g. Celestia Steward"
+                    placeholder=""
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
+                    className="w-full border rounded-xl px-3 py-2 focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   />
                 </div>
               )}
 
               <div>
-                <label htmlFor="onboard-email" className="text-slate-300 font-medium block mb-1">Email Address *</label>
+                <label htmlFor="onboard-email" className="font-medium block mb-1" style={{ color: theme.textColor }}>Email Address *</label>
                 <input
                   id="onboard-email"
                   name="email"
                   autoComplete="email"
                   type="email"
                   required
-                  placeholder="steward@equestria.org"
+                  placeholder=""
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
+                  className="w-full border rounded-xl px-3 py-2 focus:outline-none"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 />
               </div>
 
               {authMode !== 'forgot_password' && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label htmlFor="onboard-password" className="text-slate-300 font-medium block">Password *</label>
+                    <label htmlFor="onboard-password" className="font-medium block" style={{ color: theme.textColor }}>Password *</label>
                     {authMode === 'signin' && (
                       <button
                         type="button"
@@ -352,7 +431,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                           setAuthError(null);
                           setAuthSuccessMsg(null);
                         }}
-                        className="text-[11px] text-pink-400 hover:text-pink-300 transition-colors"
+                        className="text-[11px] hover:underline transition-colors cursor-pointer"
+                        style={{ color: theme.buttonColor }}
                       >
                         Forgot password?
                       </button>
@@ -364,10 +444,11 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                     autoComplete={authMode === 'signin' ? 'current-password' : 'new-password'}
                     type="password"
                     required
-                    placeholder="••••••••"
+                    placeholder=""
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
+                    className="w-full border rounded-xl px-3 py-2 focus:outline-none"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   />
                 </div>
               )}
@@ -376,7 +457,12 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmittingAuth}
-                  className="w-full py-2.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold shadow-lg shadow-pink-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  className="w-full py-2.5 rounded-xl font-bold shadow-lg border flex items-center justify-center gap-2 cursor-pointer transition-all"
+                  style={{
+                    backgroundColor: theme.buttonColor,
+                    color: theme.buttonTextColor,
+                    borderColor: effectiveBorderColor,
+                  }}
                 >
                   {isSubmittingAuth ? (
                     <span>Processing...</span>
@@ -401,7 +487,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                       setAuthError(null);
                       setAuthSuccessMsg(null);
                     }}
-                    className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border border-slate-700 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    className="w-full py-2 rounded-xl hover:opacity-80 font-semibold border flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Back to Sign In</span>
@@ -411,7 +498,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                     type="button"
                     onClick={handleGoogleSignIn}
                     disabled={isSubmittingAuth}
-                    className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md"
+                    className="w-full py-2 rounded-xl hover:opacity-80 font-medium border flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24">
                       <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.2 9 5 12 5z"/>
@@ -428,7 +516,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setStep('splash')}
-                  className="text-xs text-slate-400 hover:text-white"
+                  className="text-xs hover:underline cursor-pointer"
+                  style={{ color: theme.textColor }}
                 >
                   ← Back to Welcome
                 </button>
@@ -437,257 +526,302 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
           </div>
         )}
 
-        {/* Step 3: Create Pony Profile */}
+        {/* Step 3: Create Pony Profile (mirrors AddPonyModal) */}
         {step === 'create_pony' && (
-          <form onSubmit={handleFinishOnboarding} className="p-6 space-y-4 overflow-y-auto text-xs">
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-white">
-                Create Pony Profile
-              </h2>
+          <>
+            {/* Header */}
+            <div
+              className="flex items-center justify-between px-6 py-4 border-b shrink-0"
+              style={{ borderColor: effectiveBorderColor, backgroundColor: theme.bgColor }}
+            >
+              <div>
+                <h2 className="text-base font-bold" style={{ color: theme.textColor }}>Create Pony Profile</h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-lg border hover:opacity-80 transition-opacity cursor-pointer"
+                style={{ borderColor: effectiveBorderColor, backgroundColor: theme.bgColor, color: theme.textColor }}
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
-              {/* Pony Name */}
-              <div className="sm:col-span-2">
-                <label htmlFor="onboard-pony-name" className="text-slate-300 font-bold block mb-1">
-                  Pony Name *
-                </label>
-                <input
-                  id="onboard-pony-name"
-                  name="ponyName"
-                  type="text"
-                  required
-                  placeholder="e.g. Twilight Sparkle, Rainbow Dash, Starfall..."
-                  value={ponyName}
-                  onChange={(e) => setPonyName(e.target.value)}
-                  className="w-full bg-slate-950 border border-purple-500/40 rounded-xl px-3 py-2.5 text-white font-bold text-sm focus:outline-none focus:border-pink-500 shadow-inner"
-                />
-              </div>
+            <form onSubmit={handleFinishOnboarding} className="p-6 space-y-4 text-xs overflow-y-auto">
+              {uploadError && (
+                <div className="p-2.5 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
 
-              {/* Profile Icon (Emoticon / Emoji or Custom Image if Enabled) */}
-              <div className="sm:col-span-2">
-                <label className="text-slate-300 font-bold block mb-1">
-                  {adminSettings.allowAvatarImageUpload ? 'Profile Icon / Custom Avatar Image' : 'Profile Icon (Emoji / Emoticon)'}
-                </label>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-slate-950 p-3 rounded-2xl border border-purple-500/20">
-                  <div className="relative group/onboard-avatar w-16 h-16 shrink-0">
+              {/* Name & Avatar Icon */}
+              <div className="flex items-center gap-3">
+                <div className="relative group/icon w-14 h-14 flex-shrink-0">
+                  {avatarIcon.startsWith('data:image') || avatarIcon.startsWith('http') || isEditingEmoticon ? (
+                    isEditingEmoticon ? (
+                      <input
+                        type="text"
+                        autoFocus
+                        maxLength={24}
+                        value={avatarIcon.startsWith('data:image') || avatarIcon.startsWith('http') ? '' : avatarIcon}
+                        onChange={(e) => setAvatarIcon(e.target.value)}
+                        onBlur={() => setIsEditingEmoticon(false)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === 'Escape') setIsEditingEmoticon(false);
+                        }}
+                        placeholder="🦄"
+                        className="w-full h-full rounded-xl border-2 text-center text-sm font-bold focus:outline-none"
+                        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                      />
+                    ) : (
+                      <img
+                        src={avatarIcon}
+                        alt="Preview"
+                        className="w-full h-full rounded-xl object-cover border"
+                        style={{ borderColor: effectiveBorderColor }}
+                      />
+                    )
+                  ) : (
                     <div
-                      className="w-full h-full rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center font-bold overflow-hidden shadow-inner px-1 text-center"
+                      className="w-full h-full rounded-xl border flex items-center justify-center font-bold overflow-hidden px-1 text-center"
                       style={{
+                        backgroundColor: theme.bgColor,
+                        borderColor: effectiveBorderColor,
                         color: theme.textColor,
-                        fontSize: [...(avatarIcon || '🦄')].length >= 4 ? '12px' : [...(avatarIcon || '🦄')].length >= 2 ? '16px' : '28px',
+                        fontSize: [...avatarIcon].length >= 4 ? '11px' : [...avatarIcon].length >= 2 ? '15px' : '24px',
                       }}
                     >
-                      {avatarIcon && (avatarIcon.startsWith('data:image') || avatarIcon.startsWith('http')) ? (
-                        <img src={avatarIcon} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        avatarIcon || '🦄'
-                      )}
+                      {avatarIcon}
                     </div>
-                    {adminSettings.allowAvatarImageUpload && (
-                      <>
-                        <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-2xl opacity-0 group-hover/onboard-avatar:opacity-100 transition-opacity cursor-pointer" title="Upload custom avatar image">
-                          <Upload className="w-5 h-5 text-white" />
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            className="hidden" 
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              e.target.value = '';
-                              if (file) {
-                                try {
-                                  const resized = await resizeImageToMax(file, 400, 400);
-                                  setCropperRawImage(resized);
-                                } catch (err: any) {
-                                  console.error(err);
-                                  alert(err?.message || 'Could not load selected image. Please try another image.');
-                                }
-                              }
-                            }} 
-                          />
-                        </label>
-                        <span
-                          className="pointer-events-none absolute -bottom-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center shadow"
-                          style={{
-                            backgroundColor: theme.buttonColor,
-                            color: theme.buttonTextColor,
-                            borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
-                          }}
-                        >
-                          <Upload className="w-2.5 h-2.5" />
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex-1 min-w-[200px]">
-                        <EmoticonIconPicker
-                          value={avatarIcon}
-                          onChange={setAvatarIcon}
-                          theme={theme}
-                          compact={true}
-                        />
-                      </div>
-                      {adminSettings.allowAvatarImageUpload && (
-                        <label
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold cursor-pointer hover:opacity-90 transition-all shadow-sm shrink-0"
-                          style={{
-                            backgroundColor: theme.buttonColor,
-                            color: theme.buttonTextColor,
-                            borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
-                          }}
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload Image</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              e.target.value = '';
-                              if (file) {
-                                try {
-                                  const resized = await resizeImageToMax(file, 400, 400);
-                                  setCropperRawImage(resized);
-                                } catch (err: any) {
-                                  console.error(err);
-                                  alert(err?.message || 'Could not load selected image. Please try another image.');
-                                }
-                              }
-                            }}
-                          />
-                        </label>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-tight">
-                      {adminSettings.allowAvatarImageUpload
-                        ? 'Choose an emoji/emoticon or click Upload Image for a custom picture.'
-                        : 'Pick or type an emoji/emoticon for your pony profile across the network.'}
-                    </p>
-                  </div>
+                  )}
+                  {adminSettings.allowAvatarImageUpload && !avatarIcon.startsWith('data:image') && !avatarIcon.startsWith('http') && !isEditingEmoticon && (
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-xl opacity-0 group-hover/icon:opacity-100 transition-opacity cursor-pointer" title="Upload custom avatar image">
+                      <Upload className="w-4 h-4 text-white" />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleIconUpload} />
+                    </label>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsEditingEmoticon(!isEditingEmoticon);
+                    }}
+                    className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border flex items-center justify-center shadow-md cursor-pointer hover:scale-110 transition-transform z-20"
+                    style={{
+                      backgroundColor: theme.buttonColor,
+                      color: theme.buttonTextColor,
+                      borderColor: effectiveBorderColor,
+                    }}
+                    title="Edit emoji or emoticon"
+                  >
+                    <Smile className="w-2.5 h-2.5" />
+                  </button>
+                </div>
+                <div className="flex-1">
+                  <label htmlFor="onboard-pony-name" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>Pony Name *</label>
+                  <input
+                    id="onboard-pony-name"
+                    name="ponyName"
+                    type="text"
+                    required
+                    placeholder=""
+                    value={ponyName}
+                    onChange={(e) => setPonyName(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 font-bold focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
                 </div>
               </div>
 
-              {/* Species */}
+              {/* Species & Element */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="onboard-species" className="font-medium block mb-1" style={{ color: theme.textColor }}>
+                    Species
+                  </label>
+                  <input
+                    id="onboard-species"
+                    name="species"
+                    type="text"
+                    value={species}
+                    onChange={(e) => setSpecies(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="onboard-element" className="font-medium block mb-1" style={{ color: theme.textColor }}>
+                    Element / Affinity
+                  </label>
+                  <input
+                    id="onboard-element"
+                    name="element"
+                    type="text"
+                    value={element}
+                    onChange={(e) => setElement(e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                </div>
+              </div>
+
+              {/* Extended Profile Fields */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="onboard-favoriteTreat" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                    Favorite Treat
+                  </label>
+                  <input
+                    id="onboard-favoriteTreat"
+                    name="favoriteTreat"
+                    type="text"
+                    value={favoriteTreat}
+                    onChange={(e) => setFavoriteTreat(e.target.value)}
+                    placeholder=""
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="onboard-hobby" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                    Hobby
+                  </label>
+                  <input
+                    id="onboard-hobby"
+                    name="hobby"
+                    type="text"
+                    value={hobby}
+                    onChange={(e) => setHobby(e.target.value)}
+                    placeholder=""
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="onboard-personality" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                    Personality
+                  </label>
+                  <input
+                    id="onboard-personality"
+                    name="personality"
+                    type="text"
+                    value={personality}
+                    onChange={(e) => setPersonality(e.target.value)}
+                    placeholder=""
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="onboard-magicalAffinity" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                    Magical Affinity
+                  </label>
+                  <input
+                    id="onboard-magicalAffinity"
+                    name="magicalAffinity"
+                    type="text"
+                    value={magicalAffinity}
+                    onChange={(e) => setMagicalAffinity(e.target.value)}
+                    placeholder=""
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                </div>
+              </div>
+
+              {/* Cutie Mark & Location */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="onboard-cutieMark" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                    Cutie Mark
+                  </label>
+                  <input
+                    id="onboard-cutieMark"
+                    name="cutieMark"
+                    type="text"
+                    value={cutieMark}
+                    onChange={(e) => setCutieMark(e.target.value)}
+                    placeholder=""
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="onboard-location" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                    Location
+                  </label>
+                  <input
+                    id="onboard-location"
+                    name="location"
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder=""
+                    className="w-full border rounded-lg px-3 py-2 focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                  />
+                </div>
+              </div>
+
+              {/* Backstory */}
               <div>
-                <label htmlFor="onboard-species" className="text-slate-300 font-medium block mb-1">Species</label>
-                <input
-                  id="onboard-species"
-                  name="species"
-                  type="text"
-                  placeholder="e.g. Alicorn, Pegasus, Unicorn, Earth Pony..."
-                  value={species}
-                  onChange={(e) => setSpecies(e.target.value)}
-                  className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
+                <label htmlFor="onboard-backstory" className="text-[10px] font-bold uppercase mb-0.5 block opacity-70" style={{ color: theme.textColor }}>
+                  Backstory
+                </label>
+                <textarea
+                  id="onboard-backstory"
+                  name="backstory"
+                  rows={2}
+                  value={backstory}
+                  onChange={(e) => setBackstory(e.target.value)}
+                  placeholder=""
+                  className="w-full border rounded-lg p-2.5 focus:outline-none resize-none theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 />
               </div>
 
-              {/* Element / Affinity */}
+              {/* Information & Notes */}
               <div>
-                <label htmlFor="onboard-element" className="text-slate-300 font-medium block mb-1">Element / Affinity</label>
-                <input
-                  id="onboard-element"
-                  name="element"
-                  type="text"
-                  placeholder="e.g. Magic, Friendship, Loyalty, Laughter..."
-                  value={element}
-                  onChange={(e) => setElement(e.target.value)}
-                  className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
-                />
-              </div>
-
-              {/* Location / Country */}
-              <div className="sm:col-span-2">
-                <label htmlFor="onboard-location" className="text-slate-300 font-medium block mb-1">Location / Country</label>
-                <input
-                  id="onboard-location"
-                  name="location"
-                  type="text"
-                  placeholder="e.g. Equestria, Canterlot, Cloudsdale, USA..."
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500"
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="sm:col-span-2">
-                <label htmlFor="onboard-notes" className="text-slate-300 font-medium block mb-1">Notes / Bio</label>
+                <label htmlFor="onboard-notes" className="font-medium block mb-1 opacity-70" style={{ color: theme.textColor }}>Notes</label>
                 <textarea
                   id="onboard-notes"
                   name="notes"
-                  rows={2}
-                  placeholder="Add a bio or notes about your pony..."
+                  rows={3}
+                  placeholder=""
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full bg-slate-950 border border-purple-500/30 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-pink-500 resize-none"
+                  className="w-full border rounded-lg p-2.5 focus:outline-none resize-none theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 />
               </div>
 
-              {/* Secret Attributes Section */}
-              <div className="sm:col-span-2 bg-slate-950/60 p-3 border border-purple-500/20 rounded-2xl space-y-2">
-                <div className="flex items-center gap-1.5 text-pink-300 font-bold">
-                  <span>Secret Profile Section (Owner Only)</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input
-                    id="onboard-secret-species"
-                    name="secretSpecies"
-                    type="text"
-                    placeholder="Secret Species"
-                    value={secretSpecies}
-                    onChange={(e) => setSecretSpecies(e.target.value)}
-                    className="bg-slate-900 border border-purple-500/20 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-pink-500"
-                  />
-                  <input
-                    id="onboard-secret-element"
-                    name="secretElement"
-                    type="text"
-                    placeholder="Secret Element"
-                    value={secretElement}
-                    onChange={(e) => setSecretElement(e.target.value)}
-                    className="bg-slate-900 border border-purple-500/20 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-pink-500"
-                  />
-                </div>
-                <input
-                  id="onboard-secret-notes"
-                  name="secretNotes"
-                  type="text"
-                  placeholder="Secret Notes"
-                  value={secretNotes}
-                  onChange={(e) => setSecretNotes(e.target.value)}
-                  className="w-full bg-slate-900 border border-purple-500/20 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-pink-500"
-                />
+              {/* Actions */}
+              <div
+                className="flex justify-between items-center pt-2 border-t"
+                style={{ borderColor: effectiveBorderColor }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setStep('splash')}
+                  className="px-4 py-2 rounded-xl border font-medium cursor-pointer hover:opacity-80 transition-all theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, color: theme.textColor, borderColor: effectiveBorderColor }}
+                >
+                  ← Back
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!ponyName.trim()}
+                  className="px-5 py-2 rounded-xl font-bold shadow-lg border transition-all cursor-pointer hover:opacity-90 disabled:opacity-50 theme-border-hover"
+                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
+                >
+                  Complete registry
+                </button>
               </div>
-
-            </div>
-
-            {/* Actions */}
-            <div className="pt-3 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep('splash')}
-                className="text-xs text-slate-400 hover:text-white"
-              >
-                ← Back
-              </button>
-              
-              <button
-                type="submit"
-                disabled={!ponyName.trim()}
-                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold text-xs shadow-xl shadow-pink-600/30 flex items-center gap-2 disabled:opacity-50 transition-all"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Complete registry</span>
-              </button>
-            </div>
-          </form>
+            </form>
+          </>
         )}
-
       </div>
 
       {/* Image Cropper Modal */}
@@ -699,7 +833,7 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
           setAvatarIcon(croppedDataUrl);
           setCropperRawImage(null);
         }}
-        title="Crop & Zoom Your Profile Picture"
+        title="Crop & Zoom Avatar Image"
         outputWidth={400}
         outputHeight={400}
       />

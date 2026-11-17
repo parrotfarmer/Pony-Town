@@ -53,20 +53,34 @@ const RankingsModalContent: React.FC<RankingsModalProps> = ({
       .filter((s): s is NonNullable<typeof s> => s !== undefined);
   }, [ponies, flowsSearchQuery, sortKey, connections, statuses, targetDate, livePulseTick, flowStatsMap]);
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] bg-slate-900 border rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 theme-border-hover"
-        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+        className="relative w-full max-w-2xl max-h-[90vh] border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
+        style={{
+          backgroundColor: theme.bgColor,
+          color: theme.textColor,
+          borderColor: effectiveBorderColor,
+        }}
       >
         <div
-          className="flex items-center justify-between px-6 py-3.5 border-b bg-slate-950/80"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="flex items-center justify-between px-6 py-3.5 border-b"
+          style={{
+            backgroundColor: theme.bgColor,
+            borderColor: effectiveBorderColor,
+          }}
         >
-          <h2 className="text-base font-bold text-white">Rankings</h2>
+          <h2 className="text-base font-bold" style={{ color: theme.textColor }}>Rankings</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg border hover:opacity-80 transition-colors cursor-pointer"
+            style={{
+              backgroundColor: theme.bgColor,
+              color: theme.textColor,
+              borderColor: effectiveBorderColor,
+            }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -81,13 +95,13 @@ const RankingsModalContent: React.FC<RankingsModalProps> = ({
                     placeholder="Search ponies..."
                     value={flowsSearchQuery}
                     onChange={(e) => setFlowsSearchQuery(e.target.value)}
-                    className="w-full bg-slate-950 border rounded-xl pl-8 pr-8 py-1.5 text-xs focus:outline-none theme-border-hover"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    className="w-full border rounded-xl pl-8 pr-8 py-1.5 text-xs focus:outline-none theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   />
                   {flowsSearchQuery && (
                     <button
                       onClick={() => setFlowsSearchQuery('')}
-                      className="absolute right-2.5 opacity-60 hover:opacity-100"
+                      className="absolute right-2.5 opacity-60 hover:opacity-100 cursor-pointer"
                       style={{ color: theme.textColor }}
                     >
                       <X className="w-3.5 h-3.5" />
@@ -97,11 +111,11 @@ const RankingsModalContent: React.FC<RankingsModalProps> = ({
                 <select
                   value={sortKey}
                   onChange={(e) => setSortKey(e.target.value as PonySortKey)}
-                  className="bg-slate-950 border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer theme-border-hover"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                  className="border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none cursor-pointer theme-border-hover"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 >
                   {PONY_SORT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value} className="bg-slate-900" style={{ color: theme.textColor }}>
+                    <option key={opt.value} value={opt.value} style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>
                       {opt.label}
                     </option>
                   ))}
@@ -109,7 +123,10 @@ const RankingsModalContent: React.FC<RankingsModalProps> = ({
             </div>
 
             {sortedAndFilteredReceivers.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-500 italic bg-slate-950/40 rounded-xl border border-slate-800">
+                <div
+                  className="py-8 text-center text-xs opacity-60 italic rounded-xl border"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                >
                     No ponies matched your filter.
                 </div>
             ) : (
@@ -121,8 +138,8 @@ const RankingsModalContent: React.FC<RankingsModalProps> = ({
                         onNavigateToPony(stat.pony.id);
                         onClose();
                     }}
-                    className="bg-slate-950/70 p-3 rounded-xl border hover:border-pink-500/40 transition-all text-xs flex items-center justify-between cursor-pointer"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                    className="p-3 rounded-xl border hover:opacity-90 transition-all text-xs flex items-center justify-between cursor-pointer theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                     >
                         <div className="flex items-center gap-3">
                             <span className="font-mono text-sm font-bold opacity-60 w-6" style={{ color: theme.textColor }}>#{idx + 1}</span>

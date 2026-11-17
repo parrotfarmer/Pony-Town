@@ -141,15 +141,17 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
     };
   }, [ponies, connections, loveToPowerRatio, targetDate, statuses, livePulseTick, archivedLove, reservoirDeductions]);
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
+
   return (
     <div 
-      className="bg-slate-900/80 border rounded-2xl p-5 shadow-2xl backdrop-blur-md space-y-6 theme-border-hover"
-      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+      className="border rounded-2xl p-5 shadow-2xl backdrop-blur-md space-y-6 theme-border-hover"
+      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
     >
       {/* Title */}
       <div 
         className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b"
-        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+        style={{ borderColor: effectiveBorderColor }}
       >
         <h2 className="text-xl font-black tracking-tight" style={{ color: theme.textColor }}>
           Accounting
@@ -160,8 +162,8 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Love Rate */}
         <div 
-          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="p-4 rounded-xl border theme-border-hover"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center justify-between mb-1" style={{ color: theme.textColor }}>
             <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
@@ -178,8 +180,8 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
 
         {/* 2. Total Love (Spendable) */}
         <div 
-          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="p-4 rounded-xl border theme-border-hover"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center justify-between mb-1" style={{ color: theme.textColor }}>
             <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
@@ -196,8 +198,8 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
 
         {/* 3. Total Overall Love */}
         <div 
-          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="p-4 rounded-xl border theme-border-hover"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center justify-between mb-1" style={{ color: theme.textColor }}>
             <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
@@ -214,8 +216,8 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
 
         {/* 4. Magic Power */}
         <div 
-          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="p-4 rounded-xl border theme-border-hover"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center justify-between mb-1" style={{ color: theme.textColor }}>
             <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
@@ -234,8 +236,8 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
       {/* Reservoir Flow Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div 
-          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="p-4 rounded-xl border theme-border-hover"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-2 mb-1" style={{ color: theme.textColor }}>
             <span className="text-[10px] font-bold uppercase tracking-wider">Gross Inflow</span>
@@ -249,8 +251,8 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
         </div>
 
         <div 
-          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="p-4 rounded-xl border theme-border-hover"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-2 mb-1" style={{ color: theme.textColor }}>
             <span className="text-[10px] font-bold uppercase tracking-wider">Total Payouts</span>
@@ -264,8 +266,8 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
         </div>
 
         <div 
-          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="p-4 rounded-xl border theme-border-hover"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-2 mb-1" style={{ color: theme.textColor }}>
             <span className="text-[10px] font-bold uppercase tracking-wider">Net Balance</span>
@@ -279,8 +281,8 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
         </div>
 
         <div 
-          className="bg-slate-950/70 p-4 rounded-xl border theme-border-hover"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="p-4 rounded-xl border theme-border-hover"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-2 mb-1" style={{ color: theme.textColor }}>
             <span className="text-[10px] font-bold uppercase tracking-wider">Reservoir Level</span>
@@ -304,14 +306,14 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
             Inflow Contributions
           </h3>
           <div 
-            className="bg-slate-950/60 rounded-xl overflow-hidden border theme-border-hover"
-            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            className="rounded-xl overflow-hidden border theme-border-hover"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
           >
             <div className="max-h-[300px] overflow-y-auto">
               <table className="w-full text-left text-[11px]">
                 <thead 
-                  className="sticky top-0 bg-slate-900 font-bold uppercase tracking-tighter border-b"
-                  style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                  className="sticky top-0 font-bold uppercase tracking-tighter border-b"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 >
                   <tr>
                     <th className="px-4 py-2">Source Pony</th>
@@ -319,16 +321,16 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
                     <th className="px-4 py-2 text-right">Total Contrib</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50">
+                <tbody className="divide-y divide-white/10">
                   {inflowDetails.map(d => (
-                    <tr key={d.pony.id} className="hover:bg-slate-900/40 transition-colors">
+                    <tr key={d.pony.id} className="hover:bg-white/5 transition-colors">
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <PonyAvatar pony={d.pony} theme={theme} size="sm" />
                           <div>
                             <button
                               onClick={() => onNavigateToPony(d.pony.id)}
-                              className="font-bold hover:underline text-left block"
+                              className="font-bold hover:underline text-left block cursor-pointer"
                               style={{ color: theme.textColor }}
                             >
                               {d.pony.name}
@@ -348,7 +350,7 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
                     </tr>
                   ))}
                   {storePurchasesInflow > 0 && (
-                    <tr className="bg-slate-900/60 font-bold">
+                    <tr className="bg-white/5 font-bold">
                       <td className="px-4 py-3">
                         <div style={{ color: theme.textColor }}>Exchange Purchases (All Ponies)</div>
                       </td>
@@ -373,14 +375,14 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
             Outflow Payouts & Treats
           </h3>
           <div 
-            className="bg-slate-950/60 rounded-xl overflow-hidden border theme-border-hover"
-            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            className="rounded-xl overflow-hidden border theme-border-hover"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
           >
             <div className="max-h-[300px] overflow-y-auto">
               <table className="w-full text-left text-[11px]">
                 <thead 
-                  className="sticky top-0 bg-slate-900 font-bold uppercase tracking-tighter border-b"
-                  style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                  className="sticky top-0 font-bold uppercase tracking-tighter border-b"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 >
                   <tr>
                     <th className="px-4 py-2">Recipient Pony</th>
@@ -388,15 +390,15 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
                     <th className="px-4 py-2 text-right">Payout / Day</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50">
+                <tbody className="divide-y divide-white/10">
                   {payoutDetails.map(d => (
-                    <tr key={d.pony.id} className="hover:bg-slate-900/40 transition-colors">
+                    <tr key={d.pony.id} className="hover:bg-white/5 transition-colors">
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <PonyAvatar pony={d.pony} theme={theme} size="sm" />
                           <button
                             onClick={() => onNavigateToPony(d.pony.id)}
-                            className="font-bold hover:underline text-left"
+                            className="font-bold hover:underline text-left cursor-pointer"
                             style={{ color: theme.textColor }}
                           >
                             {d.pony.name}
@@ -412,13 +414,13 @@ export const ReservoirAccounting: React.FC<ReservoirAccountingProps> = ({
                     </tr>
                   ))}
                   {ponies.filter(p => (p.treatsReceived || 0) > 0).map(p => (
-                    <tr key={`treat-${p.id}`} className="hover:bg-slate-900/40 transition-colors">
+                    <tr key={`treat-${p.id}`} className="hover:bg-white/5 transition-colors">
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <PonyAvatar pony={p} theme={theme} size="sm" />
                           <button
                             onClick={() => onNavigateToPony(p.id)}
-                            className="font-bold hover:underline text-left"
+                            className="font-bold hover:underline text-left cursor-pointer"
                             style={{ color: theme.textColor }}
                           >
                             {p.name}

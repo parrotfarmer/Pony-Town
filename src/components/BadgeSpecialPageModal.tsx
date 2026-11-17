@@ -34,6 +34,7 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
   onAccessDenied,
 }) => {
   const { theme, adminSettings } = useSettings();
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(Boolean(initialEditing));
   const [editedRows, setEditedRows] = useState(status?.badgeRows || []);
@@ -218,14 +219,14 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
       <div 
-        className="relative w-full max-w-5xl max-h-[92vh] sm:max-h-[90vh] bg-slate-900 border rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 theme-border-hover"
-        style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+        className="relative w-full max-w-5xl max-h-[92vh] sm:max-h-[90vh] border rounded-3xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
+        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
       >
         
         {/* Header */}
         <div 
-          className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 border-b bg-slate-950/80 flex-wrap sm:flex-nowrap gap-3"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 border-b flex-wrap sm:flex-nowrap gap-3"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <div 
@@ -248,22 +249,23 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                   style={{
                     backgroundColor: `${theme.buttonColor}25`,
                     color: theme.textColor,
-                    borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                    borderColor: effectiveBorderColor,
                   }}
                 >
                   {status.multiplier}x Love
                 </span>
                 {pony && adminSettings.allowMainPonySelection && onUpdatePony && (
                   <label 
-                    className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold px-2 py-0.5 rounded-lg bg-slate-900 border transition-colors theme-border-hover"
+                    className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold px-2 py-0.5 rounded-lg border transition-colors theme-border-hover"
                     title="Makes this your main pony shown on your profile and avatar across the app"
-                    style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   >
                     <input
                       type="checkbox"
                       checked={!!pony.isMainPony}
                       onChange={(e) => onUpdatePony({ ...pony, isMainPony: e.target.checked })}
-                      className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-pink-500 focus:ring-pink-500 cursor-pointer"
+                      className="w-3.5 h-3.5 rounded text-pink-500 focus:ring-pink-500 cursor-pointer"
+                      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
                     />
                     <span>Main Pony</span>
                   </label>
@@ -285,8 +287,8 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
             {isAdmin && !isEditing && (
               <button
                 onClick={handleStartEdit}
-                className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all hover:scale-105 active:scale-95 border"
-                style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                className="px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-all hover:scale-105 active:scale-95 border cursor-pointer"
+                style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
               >
                 <Edit3 className="w-4 h-4" />
                 Customize Page
@@ -294,8 +296,8 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors border"
-              style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+              className="p-2.5 rounded-xl border hover:opacity-80 transition-opacity cursor-pointer"
+              style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
             >
               <X className="w-5 h-5" />
             </button>
@@ -303,7 +305,7 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-8 bg-[radial-gradient(circle_at_50%_0%,rgba(168,85,247,0.1),transparent_70%)]">
+        <div className="flex-1 overflow-y-auto p-8" style={{ backgroundColor: theme.bgColor }}>
           {saveSuccess && (
             <div className="mb-6 p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-sm font-bold flex items-center gap-3 animate-in slide-in-from-top-2">
               <Check className="w-5 h-5 text-emerald-400" />
@@ -315,7 +317,11 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
             <div className="space-y-8">
               <div className="space-y-4">
                 {(editedRows || []).map((row, rowIndex) => (
-                  <div key={rowIndex} className="group relative bg-slate-950/40 border border-slate-800 rounded-2xl p-6 transition-all hover:border-purple-500/30">
+                  <div
+                    key={rowIndex}
+                    className="group relative border rounded-2xl p-6 transition-all theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
+                  >
                     <button
                       onClick={() => handleRemoveRow(rowIndex)}
                       className="absolute -top-3 -right-3 p-2 bg-red-600 hover:bg-red-500 text-white rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-all z-10"
@@ -328,17 +334,19 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                       {/* Left Column Block Edit */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Left Column</span>
-                          <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+                          <span className="text-[10px] font-black uppercase opacity-60 tracking-widest" style={{ color: theme.textColor }}>Left Column</span>
+                          <div className="flex rounded-lg p-1 border" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                             <button
                               onClick={() => handleUpdateBlock(rowIndex, 'left', { type: 'text' })}
-                              className={`p-1.5 rounded-md transition-all ${row.left.type === 'text' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                              className={`p-1.5 rounded-md transition-all cursor-pointer ${row.left.type === 'text' ? 'shadow-md' : 'opacity-60 hover:opacity-100'}`}
+                              style={row.left.type === 'text' ? { backgroundColor: theme.buttonColor, color: theme.buttonTextColor } : { color: theme.textColor }}
                             >
                               <Type className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleUpdateBlock(rowIndex, 'left', { type: 'image' })}
-                              className={`p-1.5 rounded-md transition-all ${row.left.type === 'image' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                              className={`p-1.5 rounded-md transition-all cursor-pointer ${row.left.type === 'image' ? 'shadow-md' : 'opacity-60 hover:opacity-100'}`}
+                              style={row.left.type === 'image' ? { backgroundColor: theme.buttonColor, color: theme.buttonTextColor } : { color: theme.textColor }}
                             >
                               <ImageIcon className="w-3.5 h-3.5" />
                             </button>
@@ -348,7 +356,8 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                           <textarea
                             value={row.left.content}
                             onChange={(e) => handleUpdateBlock(rowIndex, 'left', { content: e.target.value })}
-                            className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:border-purple-500 resize-none min-h-[120px]"
+                            className="w-full border rounded-xl p-4 text-sm focus:outline-none resize-none min-h-[120px] theme-border-hover"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                             placeholder="Enter section text..."
                           />
                         ) : (
@@ -358,10 +367,14 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                                 type="text"
                                 value={row.left.content}
                                 onChange={(e) => handleUpdateBlock(rowIndex, 'left', { content: e.target.value })}
-                                className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-purple-300 focus:outline-none focus:border-purple-500"
+                                className="flex-1 border rounded-xl px-4 py-2.5 text-xs focus:outline-none theme-border-hover"
+                                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                                 placeholder="Image URL (max 400x400) or upload"
                               />
-                              <label className="cursor-pointer px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 flex items-center gap-1 shrink-0">
+                              <label
+                                className="cursor-pointer px-3 py-2.5 rounded-xl text-xs border flex items-center gap-1 shrink-0 hover:opacity-80"
+                                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                              >
                                 <Upload className="w-3.5 h-3.5" />
                                 <span>Upload</span>
                                 <input
@@ -383,7 +396,7 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                               </label>
                             </div>
                             {row.left.content && (
-                              <div className="h-24 rounded-lg overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center">
+                              <div className="h-24 rounded-lg overflow-hidden border flex items-center justify-center" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                                 <img src={row.left.content} alt="Preview" className="max-h-full max-w-full object-contain" />
                               </div>
                             )}
@@ -394,17 +407,19 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                       {/* Right Column Block Edit */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Right Column</span>
-                          <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+                          <span className="text-[10px] font-black uppercase opacity-60 tracking-widest" style={{ color: theme.textColor }}>Right Column</span>
+                          <div className="flex rounded-lg p-1 border" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                             <button
                               onClick={() => handleUpdateBlock(rowIndex, 'right', { type: 'text' })}
-                              className={`p-1.5 rounded-md transition-all ${row.right.type === 'text' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                              className={`p-1.5 rounded-md transition-all cursor-pointer ${row.right.type === 'text' ? 'shadow-md' : 'opacity-60 hover:opacity-100'}`}
+                              style={row.right.type === 'text' ? { backgroundColor: theme.buttonColor, color: theme.buttonTextColor } : { color: theme.textColor }}
                             >
                               <Type className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleUpdateBlock(rowIndex, 'right', { type: 'image' })}
-                              className={`p-1.5 rounded-md transition-all ${row.right.type === 'image' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                              className={`p-1.5 rounded-md transition-all cursor-pointer ${row.right.type === 'image' ? 'shadow-md' : 'opacity-60 hover:opacity-100'}`}
+                              style={row.right.type === 'image' ? { backgroundColor: theme.buttonColor, color: theme.buttonTextColor } : { color: theme.textColor }}
                             >
                               <ImageIcon className="w-3.5 h-3.5" />
                             </button>
@@ -414,7 +429,8 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                           <textarea
                             value={row.right.content}
                             onChange={(e) => handleUpdateBlock(rowIndex, 'right', { content: e.target.value })}
-                            className="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:outline-none focus:border-purple-500 resize-none min-h-[120px]"
+                            className="w-full border rounded-xl p-4 text-sm focus:outline-none resize-none min-h-[120px] theme-border-hover"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                             placeholder="Enter section text..."
                           />
                         ) : (
@@ -424,10 +440,14 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                                 type="text"
                                 value={row.right.content}
                                 onChange={(e) => handleUpdateBlock(rowIndex, 'right', { content: e.target.value })}
-                                className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-purple-300 focus:outline-none focus:border-purple-500"
+                                className="flex-1 border rounded-xl px-4 py-2.5 text-xs focus:outline-none theme-border-hover"
+                                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                                 placeholder="Image URL (max 400x400) or upload"
                               />
-                              <label className="cursor-pointer px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 flex items-center gap-1 shrink-0">
+                              <label
+                                className="cursor-pointer px-3 py-2.5 rounded-xl text-xs border flex items-center gap-1 shrink-0 hover:opacity-80"
+                                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+                              >
                                 <Upload className="w-3.5 h-3.5" />
                                 <span>Upload</span>
                                 <input
@@ -449,7 +469,7 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                               </label>
                             </div>
                             {row.right.content && (
-                              <div className="h-24 rounded-lg overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center">
+                              <div className="h-24 rounded-lg overflow-hidden border flex items-center justify-center" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                                 <img src={row.right.content} alt="Preview" className="max-h-full max-w-full object-contain" />
                               </div>
                             )}
@@ -464,24 +484,27 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
               <button
                 type="button"
                 onClick={handleAddRow}
-                className="w-full py-4 border-2 border-dashed border-slate-800 rounded-2xl text-slate-500 hover:text-purple-400 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-xs"
+                className="w-full py-4 border-2 border-dashed rounded-2xl opacity-75 hover:opacity-100 transition-all flex items-center justify-center gap-2 font-bold uppercase tracking-widest text-xs cursor-pointer theme-border-hover"
+                style={{ borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 <Plus className="w-5 h-5" />
                 Add New Block Row
               </button>
 
-              <div className="flex justify-end gap-3 pt-6 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-6 border-t" style={{ borderColor: effectiveBorderColor }}>
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition-all"
+                  className="px-6 py-3 rounded-2xl border font-bold transition-all hover:opacity-80 cursor-pointer"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 >
                   Discard Changes
                 </button>
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="px-8 py-3 rounded-2xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black flex items-center gap-2 shadow-xl shadow-purple-900/20 transform transition-all hover:scale-105"
+                  className="px-8 py-3 rounded-2xl border font-black flex items-center gap-2 shadow-xl transform transition-all hover:scale-105 cursor-pointer"
+                  style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
                 >
                   <Save className="w-5 h-5" />
                   Save Badge Page
@@ -496,11 +519,11 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                     <div key={idx} className="grid grid-cols-2 gap-12 items-center">
                       <div className="animate-in fade-in slide-in-from-left-4 duration-500 delay-75">
                         {row.left.type === 'text' ? (
-                          <div className="text-lg text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">
+                          <div className="text-lg leading-relaxed font-medium whitespace-pre-wrap" style={{ color: theme.textColor }}>
                             {row.left.content}
                           </div>
                         ) : (
-                          <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/5 bg-slate-950/50 group">
+                          <div className="rounded-3xl overflow-hidden shadow-2xl border group" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                             <img 
                               src={row.left.content} 
                               alt="Badge Section" 
@@ -512,11 +535,11 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                       </div>
                       <div className="animate-in fade-in slide-in-from-right-4 duration-500 delay-150">
                         {row.right.type === 'text' ? (
-                          <div className="text-lg text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">
+                          <div className="text-lg leading-relaxed font-medium whitespace-pre-wrap" style={{ color: theme.textColor }}>
                             {row.right.content}
                           </div>
                         ) : (
-                          <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/5 bg-slate-950/50 group">
+                          <div className="rounded-3xl overflow-hidden shadow-2xl border group" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
                             <img 
                               src={row.right.content} 
                               alt="Badge Section" 
@@ -530,10 +553,10 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                   ))
                 ) : (
                   <div className="py-24 text-center">
-                    <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-700">
-                      <ImageIcon className="w-8 h-8 text-slate-600" />
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border opacity-60" style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}>
+                      <ImageIcon className="w-8 h-8" style={{ color: theme.textColor }} />
                     </div>
-                    <p className="text-xl text-slate-500 font-semibold italic">
+                    <p className="text-xl font-semibold italic opacity-60" style={{ color: theme.textColor }}>
                       This page is currently being enchanted. Check back soon for information.
                     </p>
                   </div>
@@ -544,7 +567,7 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
               {pony && (
                 <div
                   className="mt-16 pt-12 border-t flex flex-col items-center justify-center gap-3"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                  style={{ borderColor: effectiveBorderColor }}
                 >
                   {isAlreadyAccepted ? (
                     <div className="flex flex-col items-center gap-2">
@@ -563,7 +586,10 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                   ) : onUpdatePony ? (
                     <div className="flex items-center gap-4 flex-wrap justify-center">
                       <label className="group flex items-center gap-3 cursor-pointer select-none">
-                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${hasCheckedAccept ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-slate-950 border-slate-700 group-hover:border-purple-500'}`}>
+                        <div
+                          className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${hasCheckedAccept ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.4)]' : ''}`}
+                          style={!hasCheckedAccept ? { backgroundColor: theme.bgColor, borderColor: effectiveBorderColor } : undefined}
+                        >
                           {hasCheckedAccept && <Check className="w-4 h-4 text-white" />}
                         </div>
                         <input 
@@ -580,7 +606,8 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
                       <button
                         onClick={handleAccept}
                         disabled={!hasCheckedAccept}
-                        className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${hasCheckedAccept ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-900/30 scale-105 active:scale-95' : 'bg-slate-800 text-slate-600 border border-slate-700 cursor-not-allowed'}`}
+                        className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all border ${hasCheckedAccept ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-900/30 scale-105 active:scale-95 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
+                        style={!hasCheckedAccept ? { backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor } : undefined}
                       >
                         Accept Information
                       </button>
@@ -598,13 +625,13 @@ export const BadgeSpecialPageModal: React.FC<BadgeSpecialPageModalProps> = ({
 
         {/* Footer */}
         <div 
-          className="px-8 py-4 bg-slate-950 border-t flex justify-end"
-          style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+          className="px-8 py-4 border-t flex justify-end"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all border hover:opacity-90"
-            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all border hover:opacity-90 cursor-pointer"
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
           >
             Close Page
           </button>

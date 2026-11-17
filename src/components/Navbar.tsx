@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { PonyNode, CustomStatus } from '../types/pony';
-import { calculatePonyDailyRate, getUserMainPony } from '../utils/calculations';
+import { PonyNode } from '../types/pony';
+import { getUserMainPony } from '../utils/calculations';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { 
@@ -24,7 +24,6 @@ interface NavbarProps {
   onOpenStatusManager: () => void;
   onExportData: () => void;
   onImportData: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  statuses: CustomStatus[];
   onOpenAuthModal: () => void;
   onOpenAdminModal: () => void;
   onOpenPersonalProfile: () => void;
@@ -45,7 +44,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenStatusManager,
   onExportData,
   onImportData,
-  statuses,
   onOpenAuthModal,
   onOpenAdminModal,
   onOpenPersonalProfile,
@@ -118,10 +116,12 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
+
   return (
     <header 
-      className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur-xl border-b py-1.5 sm:py-2.5 shadow-xl"
-      style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+      className="sticky top-0 z-40 w-full backdrop-blur-xl border-b py-1.5 sm:py-2.5 shadow-xl"
+      style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
     >
       <div className="max-w-7xl w-full mx-auto px-2 sm:px-4 lg:px-6 flex items-center justify-between gap-1 sm:gap-2.5 flex-nowrap">
         {/* Top Left: Responsive Search Bar (Shrinks dynamically on mobile to prevent any button overlap) */}
@@ -138,8 +138,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onSearchChange(e.target.value);
                   setIsSearchFocused(true);
                 }}
-                className="w-full bg-slate-900 border rounded-xl pl-6 sm:pl-9 pr-5 sm:pr-8 py-1 sm:py-1.5 text-[11px] sm:text-xs placeholder-slate-400 focus:outline-none transition-all shadow-inner theme-border-hover"
-                style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                className="w-full border rounded-xl pl-6 sm:pl-9 pr-5 sm:pr-8 py-1 sm:py-1.5 text-[11px] sm:text-xs focus:outline-none transition-all shadow-inner theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               />
               {searchQuery && (
                 <button
@@ -156,12 +156,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Autocomplete Dropdown */}
             {isSearchFocused && searchQuery.trim() && (
               <div 
-                className="absolute top-full left-0 mt-2 w-64 sm:w-72 md:w-80 max-w-[90vw] bg-slate-900/95 border rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-md max-h-80 overflow-y-auto theme-border-hover"
-                style={{ borderColor: theme.borderColor }}
+                className="absolute top-full left-0 mt-2 w-64 sm:w-72 md:w-80 max-w-[90vw] border rounded-xl shadow-2xl overflow-hidden z-50 backdrop-blur-md max-h-80 overflow-y-auto theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 <div 
-                  className="px-3 py-2 bg-slate-950/70 text-[10px] uppercase font-bold tracking-wider border-b"
-                  style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                  className="px-3 py-2 text-[10px] uppercase font-bold tracking-wider border-b opacity-80"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 >
                   Matching Ponies ({searchResults.length})
                 </div>
@@ -171,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     No ponies matched "{searchQuery}"
                   </div>
                 ) : (
-                  <div className="divide-y divide-purple-500/10">
+                  <div className="divide-y" style={{ borderColor: effectiveBorderColor }}>
                     {searchResults.map((pony) => (
                       <div
                         key={pony.id}
@@ -179,7 +179,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           onSelectPony(pony.id);
                           setIsSearchFocused(false);
                         }}
-                        className="p-2.5 hover:bg-purple-950/40 cursor-pointer transition-colors flex items-center gap-2.5 text-xs group"
+                        className="p-2.5 hover:opacity-80 cursor-pointer transition-opacity flex items-center gap-2.5 text-xs group"
                       >
                         <div
                           onClick={(e) => {
@@ -217,7 +217,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenAdminModal}
               className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl font-bold text-[11px] sm:text-xs shadow-md border transition-all cursor-pointer theme-border-hover shrink-0"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
               title="Open Administration"
             >
               <span className="hidden sm:inline">Administration</span>
@@ -228,7 +228,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onOpenRankings}
             className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl font-bold text-[11px] sm:text-xs shadow transition-all cursor-pointer border theme-border-hover shrink-0"
-            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+            style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
             title="View Rankings"
           >
             <span>Rankings</span>
@@ -238,7 +238,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenStore}
               className="px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl font-bold text-[11px] sm:text-xs shadow transition-all cursor-pointer border theme-border-hover shrink-0"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
               title="Open Status Exchange"
             >
               <span>Exchange</span>
@@ -256,7 +256,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }
               }}
               className="flex items-center gap-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-semibold shadow-md transition-all cursor-pointer border theme-border-hover shrink-0"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
               title="Settings"
             >
               <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color: theme.buttonTextColor }} />
@@ -266,12 +266,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Settings Popover Dropdown */}
             {isSettingsOpen && (
               <div 
-                className="absolute right-0 mt-2 w-52 bg-slate-900/95 border rounded-xl shadow-2xl p-1.5 z-50 backdrop-blur-xl text-xs space-y-0.5 animate-in fade-in zoom-in-95 duration-100 theme-border-hover"
-                style={{ borderColor: theme.borderColor }}
+                className="absolute right-0 mt-2 w-52 border rounded-xl shadow-2xl p-1.5 z-50 backdrop-blur-xl text-xs space-y-0.5 animate-in fade-in zoom-in-95 duration-100 theme-border-hover"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 <div 
                   className="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider border-b mb-1 opacity-70"
-                  style={{ borderColor: theme.borderColor, color: theme.textColor }}
+                  style={{ borderColor: effectiveBorderColor, color: theme.textColor }}
                 >
                   Settings
                 </div>
@@ -282,7 +282,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     setIsSettingsOpen(false);
                     onOpenThemeSettings();
                   }}
-                  className="w-full flex items-center px-3 py-2 rounded-lg font-semibold transition-colors text-left hover:bg-slate-800/80"
+                  className="w-full flex items-center px-3 py-2 rounded-lg font-semibold transition-opacity text-left hover:opacity-80 cursor-pointer"
                   style={{ color: theme.textColor }}
                 >
                   <span>Settings</span>
@@ -292,7 +292,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {user ? (
                   <button
                     onClick={handleSendPasswordReset}
-                    className="w-full flex items-center px-3 py-2 rounded-lg transition-colors text-left hover:bg-slate-800/80 text-xs"
+                    className="w-full flex items-center px-3 py-2 rounded-lg transition-opacity text-left hover:opacity-80 text-xs cursor-pointer"
                     style={{ color: theme.textColor }}
                     title={`Send password reset link to ${user.email}`}
                   >
@@ -304,7 +304,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setIsSettingsOpen(false);
                       onOpenAuthModal();
                     }}
-                    className="w-full flex items-center px-3 py-2 rounded-lg transition-colors text-left hover:bg-slate-800/80"
+                    className="w-full flex items-center px-3 py-2 rounded-lg transition-opacity text-left hover:opacity-80 cursor-pointer"
                     style={{ color: theme.textColor }}
                   >
                     <span>Create Account / Sign In</span>
@@ -321,7 +321,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setIsSettingsOpen(false);
                         onOpenAddModal();
                       }}
-                      className="w-full flex items-center px-3 py-2 rounded-lg transition-colors text-left hover:bg-slate-800/80"
+                      className="w-full flex items-center px-3 py-2 rounded-lg transition-opacity text-left hover:opacity-80 cursor-pointer"
                       style={{ color: theme.textColor }}
                     >
                       <span>Add Pony</span>
@@ -332,7 +332,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setIsSettingsOpen(false);
                         onOpenBulkEditor();
                       }}
-                      className="w-full flex items-center px-3 py-2 rounded-lg transition-colors text-left hover:bg-slate-800/80"
+                      className="w-full flex items-center px-3 py-2 rounded-lg transition-opacity text-left hover:opacity-80 cursor-pointer"
                       style={{ color: theme.textColor }}
                     >
                       <span>Ponies</span>
@@ -343,7 +343,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setIsSettingsOpen(false);
                         onOpenStatusManager();
                       }}
-                      className="w-full flex items-center px-3 py-2 rounded-lg transition-colors text-left hover:bg-slate-800/80"
+                      className="w-full flex items-center px-3 py-2 rounded-lg transition-opacity text-left hover:opacity-80 cursor-pointer"
                       style={{ color: theme.textColor }}
                     >
                       <span>Statuses</span>
@@ -357,7 +357,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setIsSettingsOpen(false);
                         onExportData();
                       }}
-                      className="w-full flex items-center px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors text-left"
+                      className="w-full flex items-center px-3 py-2 rounded-lg transition-opacity text-left hover:opacity-80 cursor-pointer"
                       style={{ color: theme.textColor }}
                     >
                       <span>Export JSON</span>
@@ -369,7 +369,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         setIsSettingsOpen(false);
                         fileInputRef.current?.click();
                       }}
-                      className="w-full flex items-center px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors text-left"
+                      className="w-full flex items-center px-3 py-2 rounded-lg transition-opacity text-left hover:opacity-80 cursor-pointer"
                       style={{ color: theme.textColor }}
                     >
                       <span>Import JSON</span>
@@ -398,14 +398,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               return (
                 <div
                   onClick={onOpenPersonalProfile}
-                  className="flex items-center gap-1 sm:gap-1.5 bg-slate-900 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs cursor-pointer transition-all group theme-border-hover shrink-0"
-                  style={{ borderColor: theme.borderColor }}
+                  className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl border text-[11px] sm:text-xs cursor-pointer transition-all group theme-border-hover shrink-0"
+                  style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                   title="Click to view your personal pony profile"
                 >
                   {userPony ? (
                     <PonyAvatar pony={userPony} theme={theme} size="xs" />
                   ) : (
-                    <div className="w-5 h-5 rounded-full bg-pink-500/30 border border-pink-400 text-pink-300 flex items-center justify-center font-bold text-[10px]">
+                    <div
+                      className="w-5 h-5 rounded-full border flex items-center justify-center font-bold text-[10px]"
+                      style={{
+                        backgroundColor: theme.buttonColor,
+                        color: theme.buttonTextColor,
+                        borderColor: effectiveBorderColor,
+                      }}
+                    >
                       {displayName[0]?.toUpperCase() || 'P'}
                     </div>
                   )}
@@ -424,7 +431,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       e.stopPropagation();
                       logout();
                     }}
-                    className="p-0.5 sm:p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-red-400"
+                    className="p-0.5 sm:p-1 rounded-lg opacity-70 hover:opacity-100 hover:text-red-400 transition-opacity cursor-pointer"
+                    style={{ color: theme.textColor }}
                     title="Sign Out"
                   >
                     <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
@@ -436,7 +444,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={onOpenAuthModal}
               className="px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl font-bold text-[11px] sm:text-xs shadow-md border flex items-center gap-1 sm:gap-1.5 transition-all theme-border-hover cursor-pointer shrink-0"
-              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: theme.borderColor }}
+              style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effectiveBorderColor }}
             >
               <LogIn className="w-3.5 h-3.5" />
               <span className="hidden xs:inline">Sign In / Register</span>

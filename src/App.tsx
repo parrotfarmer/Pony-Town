@@ -14,7 +14,6 @@ import {
   calculatePonyAccumulatedLove, 
   calculateDaysActive,
   getNormalizedPonySplits,
-  calculateScopedMetrics,
   calculateLoveFlowStats,
   sortPonies,
   filterPoniesBySearch,
@@ -45,7 +44,7 @@ import { useSettings } from './context/SettingsContext';
 import { doc, setDoc, deleteDoc, collection, onSnapshot, writeBatch, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
 import { stripUndefined, sanitizeFirestoreId } from './utils/firestoreHelpers';
-import { Sparkles, Heart, Sliders, Plus, Link2, Eye, ArrowRight, PieChart, Landmark, ShieldCheck, Search, X, Upload } from 'lucide-react';
+import { Sparkles, Sliders, Plus, Eye, PieChart, ShieldCheck, Search, X, Upload } from 'lucide-react';
 
 const STORAGE_KEY_PONIES = 'pony_network_nodes_clean_v5';
 const STORAGE_KEY_CONNECTIONS = 'pony_network_connections_clean_v5';
@@ -267,15 +266,6 @@ export default function App() {
   const [isSimulatingNonAdmin, setIsSimulatingNonAdmin] = useState(false);
   const isAdmin = authIsAdmin && !isSimulatingNonAdmin;
 
-  // Fallback to 'transfers' if non-admin attempts to access 'all' or 'general', or if target pony deleted
-  const activeDestinationScope = useMemo(() => {
-    if (!isAdmin && (destinationScope === 'all' || destinationScope === 'general')) {
-      return 'transfers';
-    }
-    if (destinationScope === 'all' || destinationScope === 'general' || destinationScope === 'transfers') return destinationScope;
-    if (ponies.some(p => p.id === destinationScope)) return destinationScope;
-    return isAdmin ? 'all' : 'transfers';
-  }, [destinationScope, ponies, isAdmin]);
 
   // 3. Search & Sort State
   const [searchQuery, setSearchQuery] = useState('');
@@ -1489,19 +1479,6 @@ export default function App() {
     });
   }, [user, queuePonySync]);
 
-  const handleUpdateConnection = useCallback((updatedConn: WebConnection) => {
-    if (!user || !db) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    setConnections((prev) =>
-      prev.map((c) => (c.id === updatedConn.id ? updatedConn : c))
-    );
-    setDoc(doc(db, 'connections', updatedConn.id), stripUndefined(updatedConn), { merge: true }).catch((err) => {
-      console.warn('Firestore update connection error:', err);
-    });
-  }, [user]);
-
   const handleResetNetwork = useCallback(async () => {
     if (!user || !authIsAdmin || !db) return;
     setPonies(INITIAL_PONIES);
@@ -1655,7 +1632,22 @@ export default function App() {
   }, [user, ponies]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-pink-500 selection:text-white">
+    <div
+      className="min-h-screen flex flex-col selection:bg-pink-500 selection:text-white"
+      style={{
+        backgroundColor: theme.bgColor,
+        color: theme.textColor,
+        ...(adminSettings.websiteBgImage
+          ? {
+              backgroundImage: `url("${adminSettings.websiteBgImage.replace(/["\\\n\r]/g, '')}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundAttachment: 'fixed',
+              backgroundRepeat: 'no-repeat',
+            }
+          : {}),
+      }}
+    >
       {/* 1. App Bar with Live Search & Single Settings Button (Contains Add Pony, Numbers, Statuses, Import/Export) */}
       <Navbar
         searchQuery={searchQuery}
@@ -1685,7 +1677,6 @@ export default function App() {
         }}
         onExportData={handleExportData}
         onImportData={handleImportData}
-        statuses={statuses}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenAdminModal={() => {
           if (isAdmin) setIsAdminModalOpen(true);
@@ -1732,8 +1723,6 @@ export default function App() {
             targetDate={targetDate}
             statuses={statuses}
             livePulseTick={livePulseTick}
-            webTitle={headers.webTitle}
-            onUpdateWebTitle={(t) => handleUpdateHeaders({ ...headers, webTitle: t })}
             isLayoutLocked={isLayoutLocked}
             currentUserPonyId={currentUserPony?.id}
             currentUserId={user?.uid}
@@ -1787,8 +1776,12 @@ export default function App() {
         {/* 7. Clean Harvester Ledger (Admin Only) */}
         {isAdmin && (
           <section 
-            className="bg-slate-900/70 border rounded-2xl p-5 shadow-xl backdrop-blur-md theme-border-hover"
-            style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+            className="border rounded-2xl p-5 shadow-xl backdrop-blur-md theme-border-hover"
+            style={{
+              backgroundColor: theme.bgColor,
+              borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+              color: theme.textColor,
+            }}
           >
           <div 
             className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-3"
@@ -1809,14 +1802,18 @@ export default function App() {
             <div className="flex flex-wrap items-center gap-2 ml-auto">
               {/* Search Bar for Harvester Ledger */}
               <div className="relative flex items-center min-w-[150px] max-w-[220px]">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 pointer-events-none" style={{ color: theme.textColor }} />
+                <Search className="w-3.5 h-3.5 absolute left-2.5 pointer-events-none opacity-70" style={{ color: theme.textColor }} />
                 <input
                   type="text"
                   value={ledgerSearchQuery}
                   onChange={(e) => setLedgerSearchQuery(e.target.value)}
                   placeholder="Search ledger..."
-                  className="w-full bg-slate-950 border rounded-xl pl-8 pr-7 py-1.5 text-xs placeholder-slate-400 focus:outline-none"
-                  style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor, color: theme.textColor }}
+                  className="w-full border rounded-xl pl-8 pr-7 py-1.5 text-xs focus:outline-none theme-border-hover"
+                  style={{
+                    backgroundColor: theme.bgColor,
+                    borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                    color: theme.textColor,
+                  }}
                 />
                 {ledgerSearchQuery && (
                   <button
@@ -1831,8 +1828,11 @@ export default function App() {
 
               {/* Sort Dropdown for Harvester Ledger */}
               <div 
-                className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-xl border text-xs"
-                style={{ borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor }}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs"
+                style={{
+                  backgroundColor: theme.bgColor,
+                  borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+                }}
               >
                 <span className="text-[11px] font-medium hidden md:inline opacity-70" style={{ color: theme.textColor }}>Sort:</span>
                 <select
@@ -1842,7 +1842,7 @@ export default function App() {
                   style={{ color: theme.textColor }}
                 >
                   {PONY_SORT_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value} className="bg-slate-900" style={{ color: theme.textColor }}>
+                    <option key={opt.value} value={opt.value} style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>
                       {opt.label}
                     </option>
                   ))}
@@ -1881,14 +1881,15 @@ export default function App() {
 
           {/* Quick Cards Grid */}
           {sortedAndFilteredLedgerPonies.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400">
+            <div className="py-8 text-center text-xs opacity-70" style={{ color: theme.textColor }}>
               {ponies.length === 0 ? (
                 <button
                   onClick={() => {
                     setAddPonyInitialPos(null);
                     setIsAddModalOpen(true);
                   }}
-                  className="text-pink-400 hover:text-pink-300 font-bold underline"
+                  className="font-bold underline cursor-pointer"
+                  style={{ color: theme.buttonColor }}
                 >
                   Add Pony
                 </button>
@@ -1906,11 +1907,13 @@ export default function App() {
                   ? stat.splits.map((s) => ({ recipientId: s.recipientId, amount: s.amount }))
                   : getNormalizedPonySplits(pony, statuses, connections);
                 const allocated = stat ? stat.allocatedDaily : splits.reduce((sum, s) => sum + s.amount, 0);
+                const effBorder = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
 
                 return (
                   <div
                     key={pony.id}
-                    className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 hover:border-pink-500/40 transition-all text-xs flex flex-col justify-between"
+                    className="border rounded-xl p-3 transition-all text-xs flex flex-col justify-between theme-border-hover"
+                    style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -1919,14 +1922,16 @@ export default function App() {
                             <img 
                               src={pony.avatarIcon} 
                               alt="Icon" 
-                              className="w-full h-full rounded-lg object-cover border border-slate-700 shadow-sm"
+                              className="w-full h-full rounded-lg object-cover border shadow-sm"
+                              style={{ borderColor: effBorder }}
                             />
                           ) : (
                             <input
                               type="text"
                               value={pony.avatarIcon || '💖'}
                               onChange={(e) => handleUpdatePony({ ...pony, avatarIcon: e.target.value })}
-                              className="w-full h-full rounded-lg bg-slate-900 border border-slate-700 text-center text-sm focus:outline-none focus:border-pink-500"
+                              className="w-full h-full rounded-lg border text-center text-sm focus:outline-none"
+                              style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}
                               title="Click to edit icon"
                             />
                           )}
@@ -1958,15 +1963,17 @@ export default function App() {
                             type="text"
                             value={pony.name}
                             onChange={(e) => handleUpdatePony({ ...pony, name: e.target.value })}
-                            className="font-bold text-white block leading-tight bg-transparent border-b border-transparent hover:border-pink-500 focus:outline-none w-28"
+                            className="font-bold block leading-tight bg-transparent border-b border-transparent focus:outline-none w-28"
+                            style={{ color: theme.textColor }}
                             title="Click to rename"
                           />
-                          <span className="text-[10px] text-slate-400">{pony.species || 'Pony'}</span>
+                          <span className="text-[10px] opacity-70" style={{ color: theme.textColor }}>{pony.species || 'Pony'}</span>
                         </div>
                       </div>
                       <button
                         onClick={() => setFullDetailPonyId(pony.id)}
-                        className="text-pink-400 hover:text-pink-300 text-[11px] underline flex items-center gap-1 font-semibold"
+                        className="text-[11px] underline flex items-center gap-1 font-semibold cursor-pointer hover:opacity-80"
+                        style={{ color: theme.textColor }}
                         title="Open full profile modal"
                       >
                         <Eye className="w-3 h-3" />
@@ -1974,17 +1981,18 @@ export default function App() {
                       </button>
                     </div>
 
-                    <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+                    <div className="space-y-1.5 pt-2 border-t" style={{ borderColor: effBorder }}>
                       {/* Status / Multiplier */}
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400 text-[11px]">Status:</span>
+                        <span className="opacity-70 text-[11px]" style={{ color: theme.textColor }}>Status:</span>
                         <select
                           value={pony.status}
                           onChange={(e) => handleUpdatePony({ ...pony, status: e.target.value })}
-                          className="bg-slate-900 border border-purple-500/30 rounded px-1.5 py-0.5 text-[11px] text-purple-200"
+                          className="border rounded px-1.5 py-0.5 text-[11px] focus:outline-none"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}
                         >
                           {statuses.map(s => (
-                            <option key={s.id} value={s.id}>
+                            <option key={s.id} value={s.id} style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>
                               {s.name} ({s.multiplier}x)
                             </option>
                           ))}
@@ -1993,7 +2001,7 @@ export default function App() {
 
                       {/* Start Date */}
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400 text-[11px]">Since Date:</span>
+                        <span className="opacity-70 text-[11px]" style={{ color: theme.textColor }}>Since Date:</span>
                         <input
                           type="date"
                           value={pony.startDate}
@@ -2004,13 +2012,14 @@ export default function App() {
                               customDaysOverride: null,
                             })
                           }
-                          className="w-28 bg-slate-900 border border-purple-500/30 rounded px-1 py-0.5 text-[10px] text-purple-200"
+                          className="w-28 border rounded px-1 py-0.5 text-[10px] focus:outline-none"
+                          style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}
                         />
                       </div>
 
                       {/* Total Days */}
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400 text-[11px]">Total Days:</span>
+                        <span className="opacity-70 text-[11px]" style={{ color: theme.textColor }}>Total Days:</span>
                         <div className="flex items-center gap-1">
                           <input
                             type="number"
@@ -2020,41 +2029,46 @@ export default function App() {
                               const val = e.target.value === '' ? null : Number(e.target.value);
                               handleUpdatePony({ ...pony, customDaysOverride: val });
                             }}
-                            className="w-12 bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-right text-[11px] text-slate-200"
+                            className="w-12 border rounded px-1 py-0.5 text-right text-[11px] focus:outline-none"
+                            style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}
                           />
-                          <span className="text-slate-500 text-[10px]">d</span>
+                          <span className="opacity-60 text-[10px]" style={{ color: theme.textColor }}>d</span>
                         </div>
                       </div>
 
                       {/* Total Spendable Love */}
-                      <div className="flex justify-between items-center text-[11px] pt-0.5 text-slate-300">
-                        <span>Current Love:</span>
+                      <div className="flex justify-between items-center text-[11px] pt-0.5" style={{ color: theme.textColor }}>
+                        <span className="opacity-80">Current Love:</span>
                         <strong className="text-emerald-300">{(pony.currentLoveTotal !== undefined ? Math.round(pony.currentLoveTotal) : 0).toLocaleString()} Love</strong>
                       </div>
 
                       {/* Total Overall Love */}
-                      <div className="flex justify-between items-center text-[11px] pt-0.5 text-slate-300">
-                        <span>Overall Total:</span>
-                        <strong className="text-pink-300">{Math.round(pony.totalOverallLove || 0).toLocaleString()} Love</strong>
+                      <div className="flex justify-between items-center text-[11px] pt-0.5" style={{ color: theme.textColor }}>
+                        <span className="opacity-80">Overall Total:</span>
+                        <strong className="font-bold">{Math.round(pony.totalOverallLove || 0).toLocaleString()} Love</strong>
                       </div>
 
                       {/* ADMIN EXCLUSIVE CONTROLS ON CARD */}
-                      <div className="pt-2 mt-1 border-t border-slate-800/80 space-y-2 bg-slate-900/40 p-2 rounded-lg">
+                      <div className="pt-2 mt-1 border-t space-y-2 p-2 rounded-lg" style={{ borderColor: effBorder, backgroundColor: theme.bgColor }}>
                         <div className="flex items-center justify-between">
                           <label className="flex items-center gap-1.5 cursor-pointer group">
                             <input
                               type="checkbox"
                               checked={!!pony.isAdmin}
                               onChange={(e) => handleTogglePonyAdmin(pony.id, e.target.checked)}
-                              className="w-3.5 h-3.5 rounded border-slate-700 bg-slate-800 text-amber-500 focus:ring-amber-500 focus:ring-offset-slate-900"
+                              className="w-3.5 h-3.5 rounded"
+                              style={{ accentColor: theme.buttonColor }}
                             />
-                            <span className={`text-[10px] font-bold uppercase tracking-tight ${pony.isAdmin ? 'text-amber-400' : 'text-slate-500 group-hover:text-slate-400'}`}>
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-tight ${pony.isAdmin ? 'text-amber-400' : 'opacity-60 group-hover:opacity-90'}`}
+                              style={!pony.isAdmin ? { color: theme.textColor } : undefined}
+                            >
                               Admin
                             </span>
                           </label>
 
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">Payout:</span>
+                            <span className="text-[10px] opacity-60 font-bold uppercase tracking-tight" style={{ color: theme.textColor }}>Payout:</span>
                             <div className="flex items-center">
                               <input
                                 type="number"
@@ -2063,9 +2077,10 @@ export default function App() {
                                 step="0.01"
                                 value={pony.payoutPercentage || 0}
                                 onChange={(e) => handleUpdatePayout(pony.id, Number(e.target.value) || 0)}
-                                className="w-14 bg-slate-950 border border-purple-500/30 rounded px-1 py-0.5 text-right text-[10px] text-purple-300 font-bold"
+                                className="w-14 border rounded px-1 py-0.5 text-right text-[10px] font-bold focus:outline-none"
+                                style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}
                               />
-                              <span className="text-purple-500 text-[10px] ml-0.5">%</span>
+                              <span className="opacity-70 text-[10px] ml-0.5" style={{ color: theme.textColor }}>%</span>
                             </div>
                           </div>
                         </div>
@@ -2081,14 +2096,15 @@ export default function App() {
                               pony.name
                             );
                           }}
-                          className="w-full flex items-center justify-center gap-1.5 py-1 rounded bg-gradient-to-r from-pink-600/30 to-purple-600/30 border border-pink-500/30 text-pink-200 text-[10px] font-bold hover:from-pink-500/40 hover:to-purple-500/40 transition-all"
+                          className="w-full flex items-center justify-center gap-1.5 py-1 rounded border text-[10px] font-bold hover:opacity-90 transition-all cursor-pointer"
+                          style={{ backgroundColor: theme.buttonColor, color: theme.buttonTextColor, borderColor: effBorder }}
                         >
                           <Sparkles className="w-3 h-3" />
                           Give Reservoir Treat
                         </button>
 
                         {pony.treatsReceived && pony.treatsReceived > 0 ? (
-                          <div className="text-center text-[9px] text-pink-400/80 font-medium italic">
+                          <div className="text-center text-[9px] opacity-80 font-medium italic" style={{ color: theme.textColor }}>
                             Total Treats: +{pony.treatsReceived.toLocaleString()}
                           </div>
                         ) : null}
@@ -2104,9 +2120,9 @@ export default function App() {
                           const acceptedSet = new Set(pony.acceptedBadges || []);
 
                           return (
-                            <div className="pt-2 mt-1 border-t border-slate-800/80 space-y-1.5">
+                            <div className="pt-2 mt-1 border-t space-y-1.5" style={{ borderColor: effBorder }}>
                               <div className="flex items-center justify-between gap-1.5">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+                                <span className="text-[10px] opacity-70 font-bold uppercase tracking-tight" style={{ color: theme.textColor }}>
                                   Award Badges:
                                 </span>
                                 <select
@@ -2121,14 +2137,15 @@ export default function App() {
                                       purchasedBadges: nextBadges,
                                     });
                                   }}
-                                  className="flex-1 min-w-0 bg-slate-950 border border-purple-500/30 rounded px-1.5 py-0.5 text-[10px] text-purple-200 focus:outline-none disabled:opacity-50"
+                                  className="flex-1 min-w-0 border rounded px-1.5 py-0.5 text-[10px] focus:outline-none disabled:opacity-50"
+                                  style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}
                                   title="Award a badge directly (user must still click and accept it)"
                                 >
-                                  <option value="">
+                                  <option value="" style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>
                                     {unawardedStatuses.length === 0 ? 'All badges awarded' : '+ Award Badge...'}
                                   </option>
                                   {unawardedStatuses.map((s) => (
-                                    <option key={s.id} value={s.id}>
+                                    <option key={s.id} value={s.id} style={{ backgroundColor: theme.bgColor, color: theme.textColor }}>
                                       {s.badgeIcon && !s.badgeIcon.startsWith('data:image') ? `${s.badgeIcon} ` : ''}{s.name}
                                     </option>
                                   ))}
@@ -2169,7 +2186,7 @@ export default function App() {
                                               acceptedBadges: nextAccepted,
                                             });
                                           }}
-                                          className="ml-0.5 text-slate-400 hover:text-red-300 font-bold leading-none cursor-pointer"
+                                          className="ml-0.5 opacity-70 hover:text-red-300 font-bold leading-none cursor-pointer"
                                           title={`Remove ${s.name} badge`}
                                         >
                                           ×
@@ -2186,22 +2203,23 @@ export default function App() {
 
                       {/* MULTI-SPLIT RECIPIENTS SECTION (Admin Only) */}
                       {isAdmin && (
-                        <div className="pt-2 border-t border-slate-800/80">
+                        <div className="pt-2 border-t" style={{ borderColor: effBorder }}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-[11px] text-pink-300 font-semibold flex items-center gap-1">
-                              <PieChart className="w-3 h-3 text-pink-400" />
+                            <span className="text-[11px] font-semibold flex items-center gap-1" style={{ color: theme.textColor }}>
+                              <PieChart className="w-3 h-3" style={{ color: theme.buttonColor }} />
                               Love Splits ({splits.length}):
                             </span>
                             <button
                               onClick={() => setFullDetailPonyId(pony.id)}
-                              className="text-[10px] text-pink-400 hover:underline"
+                              className="text-[10px] hover:underline cursor-pointer"
+                              style={{ color: theme.textColor }}
                             >
                               + Manage Splits
                             </button>
                           </div>
 
                           {splits.length === 0 ? (
-                            <div className="text-[10px] text-slate-500 italic bg-slate-900/60 p-1.5 rounded">
+                            <div className="text-[10px] opacity-60 italic p-1.5 rounded border" style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}>
                               General Reservoir
                             </div>
                           ) : (
@@ -2211,21 +2229,22 @@ export default function App() {
                                   return (
                                     <div
                                       key={s.recipientId}
-                                      className="flex items-center justify-between text-[10px] bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-slate-300"
+                                      className="flex items-center justify-between text-[10px] px-2 py-0.5 rounded border"
+                                      style={{ backgroundColor: theme.bgColor, borderColor: effBorder, color: theme.textColor }}
                                     >
                                       <button
                                         onClick={() => setFullDetailPonyId(s.recipientId)}
-                                        className="truncate max-w-[90px] hover:text-pink-300 hover:underline text-left"
+                                        className="truncate max-w-[90px] hover:underline text-left cursor-pointer"
                                       >
                                         ➔ {targetP?.name || 'Pony'}
                                       </button>
-                                      <span className="text-pink-300 font-bold">{s.amount} Love/day</span>
+                                      <span className="font-bold">{s.amount} Love/day</span>
                                     </div>
                                   );
                               })}
                             </div>
                           )}
-                          <div className="text-[10px] text-slate-400 text-right pr-1 pt-1 border-t border-slate-800/50">
+                          <div className="text-[10px] opacity-70 text-right pr-1 pt-1 border-t" style={{ borderColor: effBorder, color: theme.textColor }}>
                             {allocated} / {Math.round(dailyCapacity / 2)} Love/day allocated
                           </div>
                         </div>
@@ -2252,7 +2271,6 @@ export default function App() {
           onCreateConnection={handleCreateConnection}
           onDeleteConnection={handleDeleteConnection}
           onDeletePony={handleDeletePony}
-          onUpdateConnection={handleUpdateConnection}
           targetDate={targetDate}
           statuses={statusesWithBadgePages}
           onUpdateStatuses={handleUpdateStatuses}
@@ -2262,7 +2280,6 @@ export default function App() {
           onGiveTreat={handleGiveTreat}
           onUpdatePayout={handleUpdatePayout}
           onTogglePonyAdmin={handleTogglePonyAdmin}
-          reservoirDeductions={reservoirDeductions}
           livePulseTick={livePulseTick}
           onOpenAdminPopup={handleOpenAdminPopup}
           onNavigateToPony={(id) => {
@@ -2357,7 +2374,14 @@ export default function App() {
 
       {/* Floating Non-Admin Simulation Exit Banner */}
       {isSimulatingNonAdmin && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] bg-purple-900/90 border-2 border-pink-500/60 shadow-2xl rounded-2xl px-5 py-3 flex items-center gap-4 text-white animate-in slide-in-from-bottom-4 duration-300 backdrop-blur-md">
+        <div
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[200] border-2 shadow-2xl rounded-2xl px-5 py-3 flex items-center gap-4 animate-in slide-in-from-bottom-4 duration-300 backdrop-blur-md"
+          style={{
+            backgroundColor: theme.bgColor,
+            borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+            color: theme.textColor,
+          }}
+        >
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-yellow-400 animate-ping" />
             <span className="text-xs font-bold">Simulating Non-Admin User Experience</span>
@@ -2367,7 +2391,12 @@ export default function App() {
               setIsSimulatingNonAdmin(false);
               setIsAdminModalOpen(true);
             }}
-            className="px-4 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs shadow-lg transition-all flex items-center gap-1.5"
+            className="px-4 py-1.5 rounded-xl font-bold text-xs shadow-lg transition-all flex items-center gap-1.5 border cursor-pointer hover:opacity-90"
+            style={{
+              backgroundColor: theme.buttonColor,
+              color: theme.buttonTextColor,
+              borderColor: theme.transparentAllBorders ? 'transparent' : theme.borderColor,
+            }}
           >
             <ShieldCheck className="w-4 h-4" />
             Exit & Open Administration

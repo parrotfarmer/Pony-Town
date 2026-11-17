@@ -56,16 +56,19 @@ export const PonyAvatar: React.FC<PonyAvatarProps> = ({
   const getCustomStyle = () => {
     if (!showBorder || !equippedBorder) {
       return {
+        backgroundColor: theme.bgColor,
         borderColor: theme.transparentAllBorders ? 'transparent' : baseBorderColor,
       };
     }
     if (equippedBorder === 'rainbow-glow' || equippedBorder === 'pulsing' || equippedBorder === 'neon') {
       return {
+        backgroundColor: theme.bgColor,
         borderColor: borderEffectColor,
         boxShadow: `0 0 20px ${borderEffectColor}`,
       };
     }
     return {
+      backgroundColor: theme.bgColor,
       borderColor: theme.transparentAllBorders ? 'transparent' : baseBorderColor,
     };
   };
@@ -88,7 +91,7 @@ export const PonyAvatar: React.FC<PonyAvatarProps> = ({
 
   return (
     <div 
-      className={`${sizeClasses[size]} ${baseBorder} flex items-center justify-center shrink-0 overflow-hidden bg-slate-900 shadow-sm relative ${borderRingStyle} ${className}`}
+      className={`${sizeClasses[size]} ${baseBorder} flex items-center justify-center shrink-0 overflow-hidden shadow-sm relative ${borderRingStyle} ${className}`}
       style={getCustomStyle()}
     >
       {isImageAvatar ? (

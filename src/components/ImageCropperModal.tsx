@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, ZoomIn, ZoomOut, RotateCcw, Check, Move } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { cropAndScaleImage } from '../utils/imageUtils';
@@ -23,6 +23,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   outputHeight = 400,
 }) => {
   const { theme } = useSettings();
+  const effectiveBorderColor = theme.transparentAllBorders ? 'transparent' : theme.borderColor;
   const containerRef = useRef<HTMLDivElement>(null);
   
   const [zoom, setZoom] = useState<number>(1);
@@ -147,21 +148,25 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 select-none">
       <div 
-        className="relative w-full max-w-md bg-slate-900 border rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100 theme-border-hover"
-        style={{ borderColor: theme.borderColor }}
+        className="relative w-full max-w-md border rounded-2xl shadow-2xl flex flex-col overflow-hidden theme-border-hover"
+        style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
       >
         {/* Header */}
         <div 
-          className="flex items-center justify-between px-5 py-3.5 border-b bg-slate-950/80"
-          style={{ borderColor: theme.borderColor }}
+          className="flex items-center justify-between px-5 py-3.5 border-b"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <div className="flex items-center gap-2">
-            <Move className="w-4 h-4 text-pink-400" />
+            <Move className="w-4 h-4" style={{ color: theme.textColor }} />
             <h3 className="font-bold text-sm" style={{ color: theme.textColor }}>
               {title}
             </h3>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg border hover:opacity-80 cursor-pointer transition-opacity"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -181,10 +186,11 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
             onTouchStart={handleMouseDown}
             onTouchMove={handleMouseMove}
             onTouchEnd={handleMouseUp}
-            className="relative w-[250px] h-[250px] rounded-2xl overflow-hidden border-2 border-pink-500 shadow-2xl bg-slate-950 cursor-grab active:cursor-grabbing flex items-center justify-center"
+            className="relative w-[250px] h-[250px] rounded-2xl overflow-hidden border-2 shadow-2xl cursor-grab active:cursor-grabbing flex items-center justify-center"
+            style={{ backgroundColor: theme.bgColor, borderColor: theme.borderHoverColor || effectiveBorderColor }}
           >
             {/* Guide circle mask */}
-            <div className="absolute inset-0 rounded-full border border-pink-400/40 pointer-events-none z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]" />
+            <div className="absolute inset-0 rounded-full border border-white/40 pointer-events-none z-10 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]" />
 
             {/* Draggable & Scalable Image */}
             <img
@@ -207,7 +213,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleZoomChange(zoom - 0.2)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                className="p-1.5 rounded-lg border hover:opacity-80 cursor-pointer"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 title="Zoom Out"
               >
                 <ZoomOut className="w-4 h-4" />
@@ -219,12 +226,14 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
                 step="0.05"
                 value={zoom}
                 onChange={(e) => handleZoomChange(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
+                className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
+                style={{ backgroundColor: theme.bgColor, accentColor: theme.buttonColor }}
               />
               <button
                 type="button"
                 onClick={() => handleZoomChange(zoom + 0.2)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
+                className="p-1.5 rounded-lg border hover:opacity-80 cursor-pointer"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
                 title="Zoom In"
               >
                 <ZoomIn className="w-4 h-4" />
@@ -232,11 +241,12 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
             </div>
 
             <div className="flex justify-between items-center text-[11px]">
-              <span className="font-semibold text-slate-400">Zoom: {Math.round(zoom * 100)}%</span>
+              <span className="font-semibold opacity-75" style={{ color: theme.textColor }}>Zoom: {Math.round(zoom * 100)}%</span>
               <button
                 type="button"
                 onClick={handleReset}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg border hover:opacity-80 font-semibold cursor-pointer"
+                style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
               >
                 <RotateCcw className="w-3 h-3" />
                 Reset
@@ -247,13 +257,14 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
 
         {/* Footer */}
         <div 
-          className="px-6 py-4 bg-slate-950 border-t flex justify-end gap-2"
-          style={{ borderColor: theme.borderColor }}
+          className="px-6 py-4 border-t flex justify-end gap-2"
+          style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor }}
         >
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+            className="px-4 py-2 rounded-xl text-xs font-semibold border hover:opacity-80 cursor-pointer"
+            style={{ backgroundColor: theme.bgColor, borderColor: effectiveBorderColor, color: theme.textColor }}
           >
             Cancel
           </button>
@@ -265,7 +276,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
             style={{
               backgroundColor: theme.buttonColor,
               color: theme.buttonTextColor,
-              borderColor: theme.borderColor,
+              borderColor: effectiveBorderColor,
             }}
           >
             <Check className="w-4 h-4" />
