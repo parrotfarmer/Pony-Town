@@ -47,7 +47,7 @@ export const DEFAULT_STATUSES: CustomStatus[] = [
 ];
 
 export const DEFAULT_HEADERS: EditableHeaders = {
-  appTitle: 'Pony Love Harvest & Network Matrix',
+  appTitle: 'Pony Network',
   appSubtitle: 'Interactive Love Web • Live Harvest Analytics & Recipient Flows',
   webTitle: 'Pony Network Web',
   analyticsTitle: '',

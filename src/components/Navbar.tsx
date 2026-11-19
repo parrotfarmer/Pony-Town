@@ -61,15 +61,14 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleSendPasswordReset = async () => {
     if (!user?.email) {
-      alert('No email address is associated with your current session.');
       return;
     }
     try {
       await resetPassword(user.email);
-      alert(`Firebase has sent a password reset email to ${user.email}. Please check your inbox and spam folder.`);
+      alert(`Password reset email sent to ${user.email}. Please check your inbox and spam folder.`);
       setIsSettingsOpen(false);
-    } catch (err: any) {
-      alert(err.message || 'Failed to send password reset email.');
+    } catch {
+      window.location.reload();
     }
   };
 

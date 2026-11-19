@@ -85,8 +85,8 @@ export const AdminControlModal: React.FC<AdminControlModalProps> = ({
       await setUserRole(targetUid, newRole);
       setActionMsg(`Updated user role to ${newRole.toUpperCase()}`);
       await loadUsers(true);
-    } catch (err: any) {
-      setActionMsg(`Error updating role: ${err.message}`);
+    } catch {
+      window.location.reload();
     }
   };
 

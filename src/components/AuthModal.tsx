@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
-import { formatAuthError } from '../utils/authErrors';
-import { X, LogIn, UserPlus, CheckCircle2, AlertCircle, KeyRound, Mail, ArrowLeft } from 'lucide-react';
+import { X, LogIn, UserPlus, CheckCircle2, KeyRound, Mail, ArrowLeft } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,14 +16,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleGoogleSignIn = async () => {
-    setErrorMsg(null);
     setSuccessMsg(null);
     setIsSubmitting(true);
     try {
@@ -32,11 +29,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       if (signedIn) {
         onClose();
       }
-    } catch (err: any) {
-      const formatted = formatAuthError(err);
-      if (formatted) {
-        setErrorMsg(formatted);
-      }
+    } catch {
+      window.location.reload();
     } finally {
       setIsSubmitting(false);
     }
@@ -44,7 +38,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
     setSuccessMsg(null);
     setIsSubmitting(true);
 
@@ -54,7 +47,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         onClose();
       } else if (mode === 'register') {
         if (!email.trim() || !password || !displayName.trim()) {
-          setErrorMsg('Please complete all required fields.');
           setIsSubmitting(false);
           return;
         }
@@ -66,7 +58,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         }, 1200);
       } else if (mode === 'forgot_password') {
         if (!email.trim()) {
-          setErrorMsg('Please enter your email address to receive a password reset link.');
           setIsSubmitting(false);
           return;
         }
@@ -74,8 +65,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         await resetPassword(email.trim());
         setSuccessMsg(`A password reset link has been sent to ${email.trim()}. Please check your email inbox and spam folder.`);
       }
-    } catch (err: any) {
-      setErrorMsg(formatAuthError(err));
+    } catch {
+      window.location.reload();
     } finally {
       setIsSubmitting(false);
     }
@@ -133,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           >
             <button
               type="button"
-              onClick={() => { setMode('signin'); setErrorMsg(null); setSuccessMsg(null); }}
+              onClick={() => { setMode('signin'); setSuccessMsg(null); }}
               className="py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border cursor-pointer"
               style={mode === 'signin' ? {
                 backgroundColor: theme.buttonColor,
@@ -150,7 +141,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </button>
             <button
               type="button"
-              onClick={() => { setMode('register'); setErrorMsg(null); setSuccessMsg(null); }}
+              onClick={() => { setMode('register'); setSuccessMsg(null); }}
               className="py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 border cursor-pointer"
               style={mode === 'register' ? {
                 backgroundColor: theme.buttonColor,
@@ -170,13 +161,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
-          {errorMsg && (
-            <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
           {successMsg && (
             <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
@@ -227,7 +211,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                     type="button"
                     onClick={() => {
                       setMode('forgot_password');
-                      setErrorMsg(null);
                       setSuccessMsg(null);
                     }}
                     className="text-[11px] hover:underline transition-colors cursor-pointer"
@@ -289,7 +272,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 type="button"
                 onClick={() => {
                   setMode('signin');
-                  setErrorMsg(null);
                   setSuccessMsg(null);
                 }}
                 className="w-full py-2 rounded-xl font-semibold border flex items-center justify-center gap-1.5 transition-all hover:opacity-80 cursor-pointer theme-border-hover"

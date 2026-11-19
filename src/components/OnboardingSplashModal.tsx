@@ -16,7 +16,6 @@ import { ImageCropperModal } from './ImageCropperModal';
 import { useSettings } from '../context/SettingsContext';
 import { resizeImageToMax } from '../utils/imageUtils';
 import { getSortedStatuses } from '../utils/calculations';
-import { formatAuthError } from '../utils/authErrors';
 
 interface OnboardingSplashModalProps {
   isOpen: boolean;
@@ -45,7 +44,6 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccessMsg, setAuthSuccessMsg] = useState<string | null>(null);
   const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
 
@@ -75,7 +73,6 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
       setEmail('');
       setPassword('');
       setDisplayName('');
-      setAuthError(null);
       setPonyName('');
       setSpecies('');
       setElement('');
@@ -167,7 +164,6 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAuthError(null);
     setAuthSuccessMsg(null);
     setIsSubmittingAuth(true);
 
@@ -177,7 +173,6 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
         setStep('create_pony');
       } else if (authMode === 'register') {
         if (!email.trim() || !password) {
-          setAuthError('Please provide email and password');
           setIsSubmittingAuth(false);
           return;
         }
@@ -185,22 +180,20 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
         setStep('create_pony');
       } else if (authMode === 'forgot_password') {
         if (!email.trim()) {
-          setAuthError('Please enter your email address to reset your password.');
           setIsSubmittingAuth(false);
           return;
         }
         await resetPassword(email.trim());
         setAuthSuccessMsg(`Password reset link sent to ${email.trim()}! Please check your email inbox and spam folder.`);
       }
-    } catch (err: any) {
-      setAuthError(formatAuthError(err));
+    } catch {
+      window.location.reload();
     } finally {
       setIsSubmittingAuth(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    setAuthError(null);
     setAuthSuccessMsg(null);
     setIsSubmittingAuth(true);
     try {
@@ -208,11 +201,8 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
       if (signedIn) {
         setStep('create_pony');
       }
-    } catch (err: any) {
-      const formatted = formatAuthError(err);
-      if (formatted) {
-        setAuthError(formatted);
-      }
+    } catch {
+      window.location.reload();
     } finally {
       setIsSubmittingAuth(false);
     }
@@ -343,7 +333,7 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
               >
                 <button
                   type="button"
-                  onClick={() => { setAuthMode('register'); setAuthError(null); setAuthSuccessMsg(null); }}
+                  onClick={() => { setAuthMode('register'); setAuthSuccessMsg(null); }}
                   className={`py-2 font-bold rounded-lg transition-all cursor-pointer ${
                     authMode === 'register' ? '' : 'opacity-70 hover:opacity-100'
                   }`}
@@ -356,7 +346,7 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setAuthMode('signin'); setAuthError(null); setAuthSuccessMsg(null); }}
+                  onClick={() => { setAuthMode('signin'); setAuthSuccessMsg(null); }}
                   className={`py-2 font-bold rounded-lg transition-all cursor-pointer ${
                     authMode === 'signin' ? '' : 'opacity-70 hover:opacity-100'
                   }`}
@@ -367,13 +357,6 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                 >
                   Sign In
                 </button>
-              </div>
-            )}
-
-            {authError && (
-              <div className="p-3 rounded-xl bg-red-950/80 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                <span>{authError}</span>
               </div>
             )}
 
@@ -428,7 +411,6 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                         type="button"
                         onClick={() => {
                           setAuthMode('forgot_password');
-                          setAuthError(null);
                           setAuthSuccessMsg(null);
                         }}
                         className="text-[11px] hover:underline transition-colors cursor-pointer"
@@ -484,7 +466,6 @@ export const OnboardingSplashModal: React.FC<OnboardingSplashModalProps> = ({
                     type="button"
                     onClick={() => {
                       setAuthMode('signin');
-                      setAuthError(null);
                       setAuthSuccessMsg(null);
                     }}
                     className="w-full py-2 rounded-xl hover:opacity-80 font-semibold border flex items-center justify-center gap-1.5 transition-all cursor-pointer"

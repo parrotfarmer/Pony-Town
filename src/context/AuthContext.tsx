@@ -176,7 +176,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // User intentionally closed the popup — do not treat as an error
         return false;
       }
-      console.error('Google Sign In Popup Error:', err);
+      if (err?.code !== 'auth/user-cancelled') {
+        console.error('Google Sign In Popup Error:', err);
+      }
       throw err;
     }
   };

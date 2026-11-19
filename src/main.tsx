@@ -1,4 +1,4 @@
-import React, { Component, ReactNode } from 'react';
+import { Component, ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { AuthProvider } from './context/AuthContext';
@@ -13,11 +13,37 @@ declare global {
   }
 }
 
+function isFirebaseOrAuthError(reason: unknown): boolean {
+  const code = (reason as { code?: string } | null)?.code || '';
+  const msg =
+    reason instanceof Error
+      ? `${reason.name} ${reason.message}`
+      : typeof reason === 'string'
+        ? reason
+        : String(reason || '');
+  const lower = `${code} ${msg}`.toLowerCase();
+  return (
+    lower.includes('firebase') ||
+    lower.includes('firestore') ||
+    lower.includes('auth/') ||
+    lower.includes('permission-denied') ||
+    lower.includes('missing or insufficient permissions') ||
+    lower.includes('operationtype')
+  );
+}
+
 cleanupCacheBustParam();
 if (typeof window !== 'undefined') {
   window.__cancelBootWatchdog?.();
   window.addEventListener('unhandledrejection', (event) => {
-    if (isChunkOrLoadError(event.reason)) {
+    if (isChunkOrLoadError(event.reason) || isFirebaseOrAuthError(event.reason)) {
+      event.preventDefault();
+      void performHardRefresh();
+    }
+  });
+  window.addEventListener('error', (event) => {
+    if (isFirebaseOrAuthError(event.error || event.message)) {
+      event.preventDefault();
       void performHardRefresh();
     }
   });
@@ -29,45 +55,26 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  error: Error | null;
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false, error: null };
+  state: ErrorBoundaryState = { hasError: false };
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+  static getDerivedStateFromError() {
+    return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('App Startup Error:', error, errorInfo);
-    if (isChunkOrLoadError(error)) {
+  componentDidCatch(error: Error) {
+    if (isChunkOrLoadError(error) || isFirebaseOrAuthError(error)) {
       void performHardRefresh();
+      return;
     }
+    void performHardRefresh();
   }
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{ background: '#020617', color: '#f1f5f9', padding: '40px', fontFamily: 'sans-serif', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#f43f5e', marginBottom: '12px' }}>⚠️ Application Startup Error</h2>
-          <pre style={{ background: '#0f172a', padding: '16px', borderRadius: '12px', border: '1px solid rgba(244,63,94,0.3)', maxWidth: '600px', width: '100%', overflowX: 'auto', fontSize: '13px', textAlign: 'left', color: '#fda4af' }}>
-            {this.state.error?.message || String(this.state.error)}
-          </pre>
-          <button
-            type="button"
-            onClick={() => {
-              void performHardRefresh(true);
-            }}
-            style={{ marginTop: '16px', padding: '10px 18px', borderRadius: '10px', background: '#db2777', color: '#ffffff', fontWeight: 'bold', fontSize: '13px', border: 'none', cursor: 'pointer' }}
-          >
-            Hard Reload Latest Version
-          </button>
-          <p style={{ fontSize: '13px', opacity: 0.7, marginTop: '16px', maxWidth: '500px' }}>
-            Please check your browser console (F12) and ensure your Firebase authorized domains include your GitHub Pages URL.
-          </p>
-        </div>
-      );
+      return null;
     }
     return this.props.children;
   }

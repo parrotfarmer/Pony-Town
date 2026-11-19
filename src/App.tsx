@@ -142,6 +142,7 @@ export default function App() {
         return {
           ...DEFAULT_HEADERS,
           ...parsed,
+          appTitle: !parsed.appTitle || parsed.appTitle === 'Pony Love Harvest & Network Matrix' ? 'Pony Network' : parsed.appTitle,
           cardInflow: !parsed.cardInflow || parsed.cardInflow === 'Love Rate' || parsed.cardInflow === 'Love Inflow Rate' ? 'LOVE RATE' : parsed.cardInflow,
           cardHarvested: !parsed.cardHarvested || parsed.cardHarvested === 'Total Love' || parsed.cardHarvested === 'Total Love Harvested' ? 'CURRENT LOVE' : parsed.cardHarvested,
           analyticsTitle: '',
@@ -857,7 +858,14 @@ export default function App() {
         didSeedNetworkStateRef.current = true;
         const data = snap.data() as Record<string, any>;
         if (data.headers) {
-          setHeaders((prev) => ({ ...prev, ...data.headers }));
+          setHeaders((prev) => ({
+            ...prev,
+            ...data.headers,
+            appTitle:
+              data.headers.appTitle === 'Pony Love Harvest & Network Matrix'
+                ? 'Pony Network'
+                : (data.headers.appTitle ?? prev.appTitle),
+          }));
         }
         if (typeof data.loveToPowerRatio === 'number') {
           setLoveToPowerRatio(data.loveToPowerRatio);
